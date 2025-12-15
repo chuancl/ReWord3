@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState, useRef } from 'react';
-import { Volume2, ArrowLeft, BookOpen, Star, Layers, Share2, Quote, GitBranch, Globe, Loader2, Tag, History, GraduationCap, Briefcase, Split, AlignLeft, Hash, Image as ImageIcon, Youtube, Music, Tv, FileQuestion, Network, BarChart2 } from 'lucide-react';
+import { Volume2, ArrowLeft, ArrowRight, BookOpen, Star, Layers, Share2, Quote, GitBranch, Globe, Loader2, Tag, History, GraduationCap, Briefcase, Split, AlignLeft, Hash, Image as ImageIcon, Youtube, Music, Tv, FileQuestion, Network, BarChart2 } from 'lucide-react';
 import { playWordAudio, playUrl } from '../utils/audio';
 
 interface WordDetailProps {
@@ -107,6 +108,7 @@ interface YoudaoResponse {
 // --- Navigation Config ---
 const SECTIONS = [
   { id: 'basic', label: '基础释义', icon: Hash },
+  { id: 'images', label: '单词配图', icon: ImageIcon },
   { id: 'expand_ec', label: '扩展释义', icon: BookOpen },
   { id: 'collins', label: '柯林斯双解', icon: Star },
   { id: 'ee', label: '英英释义', icon: Globe },
@@ -228,7 +230,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
   const phrases = data.phrs?.phrs || [];
   const synonyms = data.syno?.synos || [];
   const roots = data.rel_word?.rels || [];
-  const etym = data.etym?.etyms?.zh || data.etym?.etyms?.en; // Support zh or fallback to en structure if needed
+  const etym = data.etym?.etyms?.zh || data.etym?.etyms?.en; 
   
   const sentences = data.blng_sents_part?.["sentence-pair"] || [];
   const mediaSents = data.media_sents_part?.sent || [];
@@ -247,6 +249,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
   const hasData = (id: string) => {
       switch(id) {
           case 'basic': return !!ec;
+          case 'images': return images.length > 0;
           case 'expand_ec': return expandEc.length > 0;
           case 'collins': return !!collins || collinsPrimary.length > 0;
           case 'ee': return ee.length > 0;
@@ -312,10 +315,10 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
               {/* 3. Main Content Area */}
               <div className="flex-1 w-full space-y-8 min-w-0">
                   
-                  {/* Basic Info & Images */}
+                  {/* Basic Info (Images removed) */}
                   <div id="basic" ref={el => sectionRefs.current['basic'] = el} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 relative overflow-hidden group">
-                      <div className="flex flex-col md:flex-row gap-8">
-                          <div className="flex-1 relative z-10">
+                      <div className="flex flex-col gap-4">
+                          <div className="relative z-10">
                               <div className="flex flex-col md:flex-row md:items-end gap-4 mb-5">
                                   <h1 className="text-5xl font-extrabold text-slate-900 tracking-tight font-serif">{word}</h1>
                                   <div className="flex gap-3 mb-1.5">
@@ -366,29 +369,69 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   })}
                               </div>
                           </div>
-
-                          {/* Image Carousel */}
-                          {images.length > 0 && (
-                              <div className="w-full md:w-64 shrink-0 flex flex-col gap-2">
-                                  <div className="aspect-square rounded-xl overflow-hidden border border-slate-200 shadow-sm relative group bg-slate-50">
-                                      <img src={images[activeImageIndex].image} className="w-full h-full object-cover" alt={word} />
-                                      {images.length > 1 && (
-                                          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                              {images.slice(0, 5).map((_, i) => (
-                                                  <button 
-                                                      key={i} 
-                                                      onClick={() => setActiveImageIndex(i)}
-                                                      className={`w-2 h-2 rounded-full ${activeImageIndex === i ? 'bg-white' : 'bg-white/50 hover:bg-white/80'}`}
-                                                  />
-                                              ))}
-                                          </div>
-                                      )}
-                                  </div>
-                                  <div className="text-xs text-center text-slate-400">词典配图 {images.length > 1 ? `(${activeImageIndex + 1}/${images.length})` : ''}</div>
-                              </div>
-                          )}
                       </div>
                   </div>
+
+                  {/* Images Section (Carousel) */}
+                  {hasData('images') && (
+                      <div id="images" ref={el => sectionRefs.current['images'] = el} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                          <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
+                              <ImageIcon className="w-5 h-5 text-rose-500" />
+                              <h3 className="text-lg font-bold text-slate-800">单词配图 (Images)</h3>
+                          </div>
+                          
+                          <div className="relative bg-slate-50 rounded-xl overflow-hidden border border-slate-100 group select-none">
+                              {/* Main Image Display */}
+                              <div className="aspect-[4/3] md:aspect-[16/9] w-full flex items-center justify-center bg-slate-100 relative overflow-hidden">
+                                   {/* Blurred Background */}
+                                   <div 
+                                      className="absolute inset-0 bg-cover bg-center blur-xl opacity-50 scale-110"
+                                      style={{ backgroundImage: `url(${images[activeImageIndex].image})` }}
+                                   />
+                                   
+                                   {/* Main Image */}
+                                   <img 
+                                      src={images[activeImageIndex].image} 
+                                      className="relative z-10 max-h-full max-w-full object-contain shadow-lg"
+                                      alt={`${word} illustration`}
+                                   />
+
+                                   {/* Navigation Arrows */}
+                                   {images.length > 1 && (
+                                       <>
+                                           <button 
+                                               onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev === 0 ? images.length - 1 : prev - 1); }}
+                                               className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white/80 hover:bg-white text-slate-700 shadow-md opacity-0 group-hover:opacity-100 transition-all transform hover:scale-110"
+                                           >
+                                               <ArrowLeft className="w-5 h-5" />
+                                           </button>
+                                           <button 
+                                               onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1); }}
+                                               className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white/80 hover:bg-white text-slate-700 shadow-md opacity-0 group-hover:opacity-100 transition-all transform hover:scale-110"
+                                           >
+                                               <ArrowRight className="w-5 h-5" />
+                                           </button>
+                                       </>
+                                   )}
+                              </div>
+
+                              {/* Thumbnails / Indicators */}
+                              {images.length > 1 && (
+                                  <div className="p-4 bg-white border-t border-slate-100 flex gap-2 overflow-x-auto custom-scrollbar">
+                                      {images.map((img, idx) => (
+                                          <button 
+                                              key={idx}
+                                              onClick={() => setActiveImageIndex(idx)}
+                                              className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${activeImageIndex === idx ? 'border-rose-500 ring-2 ring-rose-100' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                                          >
+                                              <img src={img.image} className="w-full h-full object-cover" />
+                                          </button>
+                                      ))}
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+                  )}
 
                   {/* Expand EC */}
                   {hasData('expand_ec') && (
