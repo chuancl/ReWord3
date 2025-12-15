@@ -9,8 +9,16 @@ interface WordDetailProps {
 }
 
 // --- 1. Basic / EC / Expand EC ---
+interface WfObject { name?: string; value?: string; }
+interface WfItem { wf?: WfObject; }
 interface TrObject { l?: { i?: string[] }; }
-interface EcWord { usphone?: string; ukphone?: string; trs?: { tr?: TrObject[]; }[]; return_phrase?: { l?: { i?: string } }; }
+interface EcWord { 
+    usphone?: string; 
+    ukphone?: string; 
+    trs?: { tr?: TrObject[]; }[]; 
+    return_phrase?: { l?: { i?: string } };
+    wfs?: WfItem[]; 
+}
 interface EcData { word?: EcWord[]; exam_type?: string[]; }
 
 interface ExpandEcItem { transList?: { content?: { sents?: { sentOrig?: string; sentTrans?: string }[] }; trans?: string; }[]; pos?: string; }
@@ -110,7 +118,8 @@ const SECTIONS = [
   { id: 'basic', label: '基础释义', icon: Hash },
   { id: 'images', label: '单词配图', icon: ImageIcon },
   { id: 'expand_ec', label: '扩展释义', icon: BookOpen },
-  { id: 'collins', label: '柯林斯双解', icon: Star },
+  { id: 'collins_primary', label: '柯林斯 (新)', icon: Star },
+  { id: 'collins_old', label: '柯林斯 (旧)', icon: Star },
   { id: 'ee', label: '英英释义', icon: Globe },
   { id: 'video_lecture', label: '视频讲解', icon: Youtube },
   { id: 'video_scene', label: '实景视频', icon: Tv },
@@ -257,7 +266,8 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
           case 'basic': return !!ec;
           case 'images': return images.length > 0;
           case 'expand_ec': return expandEc.length > 0;
-          case 'collins': return !!collins || collinsPrimary.length > 0;
+          case 'collins_primary': return collinsPrimary.length > 0;
+          case 'collins_old': return !!collins;
           case 'ee': return ee.length > 0;
           case 'video_lecture': return wordVideos.length > 0;
           case 'video_scene': return videoSents.length > 0;
@@ -351,6 +361,18 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                           <span key={i} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-white border border-slate-200 text-slate-500 shadow-sm">
                                               {tag}
                                           </span>
+                                      ))}
+                                  </div>
+                              )}
+
+                              {/* WFS (Word Forms) Section */}
+                              {wordInfo?.wfs && wordInfo.wfs.length > 0 && (
+                                  <div className="flex flex-wrap gap-x-4 gap-y-2 mb-5 text-sm">
+                                      {wordInfo.wfs.map((item, i) => (
+                                          <div key={i} className="flex items-center text-slate-600 bg-slate-100/50 px-2 py-1 rounded border border-slate-200/50">
+                                              <span className="text-slate-400 mr-1.5 text-xs scale-90 origin-right">{item.wf?.name}</span>
+                                              <span className="font-semibold text-slate-700">{item.wf?.value}</span>
+                                          </div>
                                       ))}
                                   </div>
                               )}
@@ -472,13 +494,13 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                       </div>
                   )}
 
-                  {/* Collins (Primary & Old) */}
-                  {hasData('collins') && (
-                      <div id="collins" ref={el => sectionRefs.current['collins'] = el} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                  {/* Collins Primary (New) */}
+                  {hasData('collins_primary') && (
+                      <div id="collins_primary" ref={el => sectionRefs.current['collins_primary'] = el} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                           <div className="bg-amber-50/50 px-8 py-5 border-b border-amber-100 flex items-center justify-between">
                               <h3 className="font-bold text-amber-900 flex items-center text-lg">
                                   <Star className="w-5 h-5 mr-2 text-amber-500 fill-amber-500" />
-                                  柯林斯双解 (Collins)
+                                  柯林斯双解 (新)
                               </h3>
                               {collins?.star !== undefined && (
                                   <div className="flex items-center bg-white px-3 py-1 rounded-full border border-amber-100 shadow-sm">
@@ -492,69 +514,86 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                               )}
                           </div>
                           
-                          {/* Collins Primary (Newer Data) */}
-                          {collinsPrimary.length > 0 && (
-                              <div className="p-8 space-y-8">
-                                  {collinsPrimary.map((cat, cIdx) => (
-                                      <div key={cIdx}>
-                                          {cat.partofspeech && <div className="text-sm font-bold text-amber-700 bg-amber-50 inline-block px-2 py-1 rounded mb-4">{cat.partofspeech}</div>}
-                                          <div className="space-y-6">
-                                              {cat.senses?.map((sense, sIdx) => (
-                                                  <div key={sIdx} className="flex gap-4 group">
-                                                      <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold shrink-0 group-hover:bg-amber-100 group-hover:text-amber-700 transition-colors">{sIdx + 1}</div>
-                                                      <div className="flex-1">
-                                                          <div className="text-slate-800 font-medium mb-1">
-                                                              {sense.word && <span className="mr-2 text-amber-900 font-bold">{sense.word}</span>}
-                                                              {sense.definition}
+                          <div className="p-8 space-y-8">
+                              {collinsPrimary.map((cat, cIdx) => (
+                                  <div key={cIdx}>
+                                      {cat.partofspeech && <div className="text-sm font-bold text-amber-700 bg-amber-50 inline-block px-2 py-1 rounded mb-4">{cat.partofspeech}</div>}
+                                      <div className="space-y-6">
+                                          {cat.senses?.map((sense, sIdx) => (
+                                              <div key={sIdx} className="flex gap-4 group">
+                                                  <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold shrink-0 group-hover:bg-amber-100 group-hover:text-amber-700 transition-colors">{sIdx + 1}</div>
+                                                  <div className="flex-1">
+                                                      <div className="text-slate-800 font-medium mb-1">
+                                                          {sense.word && <span className="mr-2 text-amber-900 font-bold">{sense.word}</span>}
+                                                          {sense.definition}
+                                                      </div>
+                                                      {sense.examples && (
+                                                          <div className="space-y-1 mt-2">
+                                                              {sense.examples.map((ex, exIdx) => (
+                                                                  <div key={exIdx} className="text-sm text-slate-600 pl-3 border-l-2 border-slate-200">
+                                                                      <p>{ex.example}</p>
+                                                                      {ex.tran && <p className="text-slate-400 text-xs">{ex.tran}</p>}
+                                                                  </div>
+                                                              ))}
                                                           </div>
-                                                          {sense.examples && (
-                                                              <div className="space-y-1 mt-2">
-                                                                  {sense.examples.map((ex, exIdx) => (
-                                                                      <div key={exIdx} className="text-sm text-slate-600 pl-3 border-l-2 border-slate-200">
-                                                                          <p>{ex.example}</p>
-                                                                          {ex.tran && <p className="text-slate-400 text-xs">{ex.tran}</p>}
-                                                                      </div>
-                                                                  ))}
-                                                              </div>
-                                                          )}
-                                                      </div>
-                                                  </div>
-                                              ))}
-                                          </div>
-                                      </div>
-                                  ))}
-                              </div>
-                          )}
-
-                          {/* Fallback to Old Collins if Primary is missing but Old exists */}
-                          {collinsPrimary.length === 0 && collins?.entries?.entry && (
-                              <div className="p-8 divide-y divide-slate-100">
-                                  {collins.entries.entry.map((entry, eIdx) => (
-                                      <div key={eIdx}>
-                                          {entry.tran_entry?.map((te, tIdx) => (
-                                              <div key={tIdx} className="py-4 first:pt-0 last:pb-0">
-                                                  <div className="flex gap-4">
-                                                      <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold shrink-0">{tIdx + 1}</div>
-                                                      <div className="flex-1">
-                                                          <div className="mb-2 text-slate-800 font-medium" dangerouslySetInnerHTML={{ __html: te.tran || '' }} />
-                                                          {te.exam_sents && (
-                                                              <div className="space-y-1.5 pl-3 border-l-2 border-slate-200">
-                                                                  {te.exam_sents.slice(0, 3).map((ex, exIdx) => (
-                                                                      <div key={exIdx} className="text-sm">
-                                                                          <p className="text-slate-700">{ex.sent_orig}</p>
-                                                                          <p className="text-slate-400 text-xs">{ex.sent_trans}</p>
-                                                                      </div>
-                                                                  ))}
-                                                              </div>
-                                                          )}
-                                                      </div>
+                                                      )}
                                                   </div>
                                               </div>
                                           ))}
                                       </div>
-                                  ))}
-                              </div>
-                          )}
+                                  </div>
+                              ))}
+                          </div>
+                          <SourceBadge source="collins_primary" />
+                      </div>
+                  )}
+
+                  {/* Collins Old */}
+                  {hasData('collins_old') && (
+                      <div id="collins_old" ref={el => sectionRefs.current['collins_old'] = el} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                          <div className="bg-amber-50/50 px-8 py-5 border-b border-amber-100 flex items-center justify-between">
+                              <h3 className="font-bold text-amber-900 flex items-center text-lg">
+                                  <Star className="w-5 h-5 mr-2 text-amber-500" />
+                                  柯林斯双解 (旧)
+                              </h3>
+                              {collins?.star !== undefined && (
+                                  <div className="flex items-center bg-white px-3 py-1 rounded-full border border-amber-100 shadow-sm">
+                                      <span className="text-xs font-bold text-amber-800 mr-2 uppercase">Level</span>
+                                      <div className="flex">
+                                          {[...Array(5)].map((_, i) => (
+                                              <Star key={i} className={`w-3.5 h-3.5 ${i < (collins.star || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                                          ))}
+                                      </div>
+                                  </div>
+                              )}
+                          </div>
+
+                          <div className="p-8 divide-y divide-slate-100">
+                              {collins?.entries?.entry?.map((entry, eIdx) => (
+                                  <div key={eIdx}>
+                                      {entry.tran_entry?.map((te, tIdx) => (
+                                          <div key={tIdx} className="py-4 first:pt-0 last:pb-0">
+                                              <div className="flex gap-4">
+                                                  <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold shrink-0">{tIdx + 1}</div>
+                                                  <div className="flex-1">
+                                                      <div className="mb-2 text-slate-800 font-medium" dangerouslySetInnerHTML={{ __html: te.tran || '' }} />
+                                                      {te.exam_sents && (
+                                                          <div className="space-y-1.5 pl-3 border-l-2 border-slate-200">
+                                                              {te.exam_sents.slice(0, 3).map((ex, exIdx) => (
+                                                                  <div key={exIdx} className="text-sm">
+                                                                      <p className="text-slate-700">{ex.sent_orig}</p>
+                                                                      <p className="text-slate-400 text-xs">{ex.sent_trans}</p>
+                                                                  </div>
+                                                              ))}
+                                                          </div>
+                                                      )}
+                                                  </div>
+                                              </div>
+                                          </div>
+                                      ))}
+                                  </div>
+                              ))}
+                          </div>
                           <SourceBadge source="collins" />
                       </div>
                   )}
