@@ -43,7 +43,14 @@ interface CollinsEntry {
 interface CollinsEntryWrapper { 
     entry?: CollinsEntry[] | CollinsEntry; 
 }
-interface CollinsData { collins_entries?: { entries?: CollinsEntryWrapper; star?: number; }[]; }
+// Updated: collins_entries is an array representing "super headwords" groups
+interface CollinsData { 
+    collins_entries?: { 
+        entries?: CollinsEntryWrapper; 
+        star?: number; 
+        headword?: string;
+    }[]; 
+}
 
 interface CollinsPrimarySense { definition?: string; word?: string; examples?: { example?: string; tran?: string }[]; }
 interface CollinsPrimaryGramcat { partofspeech?: string; senses?: CollinsPrimarySense[]; audio?: string; }
@@ -253,7 +260,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
   const expandEc = data.expand_ec?.word || [];
   const wordInfo = ec?.word?.[0];
   const tags = ec?.exam_type || [];
-  const collins = data.collins?.collins_entries?.[0];
+  const collinsEntries = data.collins?.collins_entries || [];
   const collinsPrimary = data.collins_primary?.gramcat || [];
   const ee = data.ee?.word?.trs || [];
   
@@ -282,7 +289,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
           case 'images': return images.length > 0;
           case 'expand_ec': return expandEc.length > 0;
           case 'collins_primary': return collinsPrimary.length > 0;
-          case 'collins_old': return !!collins;
+          case 'collins_old': return collinsEntries.length > 0;
           case 'ee': return ee.length > 0;
           case 'video_lecture': return wordVideos.length > 0;
           case 'video_scene': return videoSents.length > 0;
@@ -517,12 +524,13 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   <Star className="w-5 h-5 mr-2 text-amber-500 fill-amber-500" />
                                   柯林斯双解 (新)
                               </h3>
-                              {collins?.star !== undefined && (
+                              {/* Display highest star from all groups if available, or just from the first */}
+                              {collinsEntries[0]?.star !== undefined && (
                                   <div className="flex items-center bg-white px-3 py-1 rounded-full border border-amber-100 shadow-sm">
                                       <span className="text-xs font-bold text-amber-800 mr-2 uppercase">Level</span>
                                       <div className="flex">
                                           {[...Array(5)].map((_, i) => (
-                                              <Star key={i} className={`w-3.5 h-3.5 ${i < (collins.star || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                                              <Star key={i} className={`w-3.5 h-3.5 ${i < (collinsEntries[0].star || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
                                           ))}
                                       </div>
                                   </div>
@@ -571,41 +579,65 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   <Star className="w-5 h-5 mr-2 text-amber-500" />
                                   柯林斯双解 (旧)
                               </h3>
-                              {collins?.star !== undefined && (
-                                  <div className="flex items-center bg-white px-3 py-1 rounded-full border border-amber-100 shadow-sm">
-                                      <span className="text-xs font-bold text-amber-800 mr-2 uppercase">Level</span>
-                                      <div className="flex">
-                                          {[...Array(5)].map((_, i) => (
-                                              <Star key={i} className={`w-3.5 h-3.5 ${i < (collins.star || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
-                                          ))}
-                                      </div>
-                                  </div>
-                              )}
                           </div>
 
-                          <div className="p-8 divide-y divide-slate-100">
-                              {toArray(collins?.entries?.entry).map((entry, eIdx) => (
-                                  <div key={eIdx}>
-                                      {toArray(entry.tran_entry).map((te, tIdx) => (
-                                          <div key={tIdx} className="py-4 first:pt-0 last:pb-0">
-                                              <div className="flex gap-4">
-                                                  <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold shrink-0">{tIdx + 1}</div>
-                                                  <div className="flex-1">
-                                                      <div className="mb-2 text-slate-800 font-medium" dangerouslySetInnerHTML={{ __html: te.tran || '' }} />
-                                                      {te.exam_sents && (
-                                                          <div className="space-y-1.5 pl-3 border-l-2 border-slate-200">
-                                                              {toArray(te.exam_sents).slice(0, 3).map((ex, exIdx) => (
-                                                                  <div key={exIdx} className="text-sm">
-                                                                      <p className="text-slate-700">{ex.sent_orig}</p>
-                                                                      <p className="text-slate-400 text-xs">{ex.sent_trans}</p>
-                                                                  </div>
-                                                              ))}
-                                                          </div>
-                                                      )}
+                          <div className="p-8">
+                              {collinsEntries.map((entryGroup, groupIdx) => (
+                                  <div key={groupIdx} className="mb-10 last:mb-0">
+                                      {/* Header for this group: Headword + Star */}
+                                      <div className="flex items-center justify-between mb-4 bg-amber-50/30 p-3 rounded-lg border border-amber-100">
+                                          <div className="flex items-baseline gap-3">
+                                              <span className="font-bold text-amber-900 text-xl">{entryGroup.headword || word}</span>
+                                              {collinsEntries.length > 1 && (
+                                                  <span className="text-xs text-amber-700/60 font-bold uppercase tracking-wider bg-white px-2 py-0.5 rounded border border-amber-100">Definition Group {groupIdx + 1}</span>
+                                              )}
+                                          </div>
+                                          {entryGroup.star !== undefined && (
+                                              <div className="flex items-center bg-white px-3 py-1 rounded-full border border-amber-100 shadow-sm">
+                                                  <div className="flex">
+                                                      {[...Array(5)].map((_, i) => (
+                                                          <Star key={i} className={`w-3.5 h-3.5 ${i < (entryGroup.star || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                                                      ))}
                                                   </div>
                                               </div>
-                                          </div>
-                                      ))}
+                                          )}
+                                      </div>
+
+                                      <div className="divide-y divide-slate-100">
+                                          {toArray(entryGroup.entries?.entry).map((entry, eIdx) => (
+                                              <div key={eIdx}>
+                                                  {toArray(entry.tran_entry).map((te, tIdx) => (
+                                                      <div key={tIdx} className="py-4 first:pt-0 last:pb-0">
+                                                          <div className="flex gap-4">
+                                                              <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                                                                  {/* If simple numbers are needed, use tIdx+1. Or could be dot points */}
+                                                                  {tIdx + 1}
+                                                              </div>
+                                                              <div className="flex-1">
+                                                                  {te.pos_entry && (
+                                                                      <div className="mb-1">
+                                                                          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded mr-2">{te.pos_entry.pos}</span>
+                                                                          {te.pos_entry.pos_tips && <span className="text-xs text-slate-400">({te.pos_entry.pos_tips})</span>}
+                                                                      </div>
+                                                                  )}
+                                                                  <div className="mb-2 text-slate-800 font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: te.tran || '' }} />
+                                                                  {te.exam_sents && (
+                                                                      <div className="space-y-2 pl-3 border-l-2 border-slate-200 mt-2">
+                                                                          {toArray(te.exam_sents).slice(0, 3).map((ex, exIdx) => (
+                                                                              <div key={exIdx} className="text-sm group/ex">
+                                                                                  <p className="text-slate-700 font-medium group-hover/ex:text-blue-700 transition-colors cursor-text">{ex.sent_orig}</p>
+                                                                                  <p className="text-slate-400 text-xs mt-0.5">{ex.sent_trans}</p>
+                                                                              </div>
+                                                                          ))}
+                                                                      </div>
+                                                                  )}
+                                                              </div>
+                                                          </div>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          ))}
+                                      </div>
                                   </div>
                               ))}
                           </div>
