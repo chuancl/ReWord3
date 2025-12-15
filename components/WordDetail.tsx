@@ -321,7 +321,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
               {/* 3. Main Content Area */}
               <div className="flex-1 w-full space-y-8 min-w-0">
                   
-                  {/* Basic Info (Images removed) */}
+                  {/* Basic Info (Images removed from here) */}
                   <div id="basic" ref={el => sectionRefs.current['basic'] = el} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 relative overflow-hidden group">
                       <div className="flex flex-col gap-4">
                           <div className="relative z-10">
