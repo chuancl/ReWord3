@@ -128,6 +128,12 @@ const SECTIONS = [
   { id: 'stats', label: '词频统计', icon: BarChart2 },
 ];
 
+const SourceBadge = ({ source }: { source: string }) => (
+    <div className="mt-4 pt-3 border-t border-slate-50 flex justify-end">
+        <span className="text-[10px] text-slate-300 font-mono tracking-wide uppercase">Source: {source}</span>
+    </div>
+);
+
 export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
   const [data, setData] = useState<YoudaoResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -369,6 +375,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   })}
                               </div>
                           </div>
+                          <SourceBadge source="ec" />
                       </div>
                   </div>
 
@@ -430,6 +437,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               )}
                           </div>
+                          <SourceBadge source="pic_dict" />
                       </div>
                   )}
 
@@ -460,6 +468,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               ))}
                           </div>
+                          <SourceBadge source="expand_ec" />
                       </div>
                   )}
 
@@ -546,6 +555,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   ))}
                               </div>
                           )}
+                          <SourceBadge source="collins" />
                       </div>
                   )}
 
@@ -579,6 +589,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               ))}
                           </div>
+                          <SourceBadge source="ee" />
                       </div>
                   )}
 
@@ -602,6 +613,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </a>
                               ))}
                           </div>
+                          <SourceBadge source="word_video" />
                       </div>
                   )}
 
@@ -635,6 +647,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               ))}
                           </div>
+                          <SourceBadge source="video_sents" />
                       </div>
                   )}
 
@@ -668,6 +681,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               ))}
                           </div>
+                          <SourceBadge source="music_sents" />
                       </div>
                   )}
 
@@ -691,6 +705,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   );
                               })}
                           </div>
+                          <SourceBadge source="phrs" />
                       </div>
                   )}
 
@@ -720,6 +735,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               ))}
                           </div>
+                          <SourceBadge source="syno" />
                       </div>
                   )}
 
@@ -743,6 +759,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               ))}
                           </div>
+                          <SourceBadge source="discrim" />
                       </div>
                   )}
 
@@ -772,6 +789,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               ))}
                           </div>
+                          <SourceBadge source="rel_word" />
                       </div>
                   )}
 
@@ -787,6 +805,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                               <p>{etym?.desc}</p>
                               {etym?.source && <p className="text-xs text-amber-500/60 mt-4 text-right">—— {etym.source}</p>}
                           </div>
+                          <SourceBadge source="etym" />
                       </div>
                   )}
 
@@ -813,6 +832,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               ))}
                           </div>
+                          <SourceBadge source="blng_sents_part" />
                       </div>
                   )}
 
@@ -848,6 +868,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               ))}
                           </div>
+                          <SourceBadge source="media_sents_part" />
                       </div>
                   )}
 
@@ -885,6 +906,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               ))}
                           </div>
+                          <SourceBadge source="individual" />
                       </div>
                   )}
 
@@ -905,6 +927,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               ))}
                           </div>
+                          <SourceBadge source="web_trans" />
                       </div>
                   )}
 
@@ -928,6 +951,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </a>
                               )}
                           </div>
+                          <SourceBadge source="wikipedia_digest" />
                       </div>
                   )}
 
@@ -945,13 +969,13 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                       {Object.entries(stats.summary.sources).map(([key, val]: [string, any]) => (
                                           <div key={key} className="px-3 py-2 bg-slate-50 rounded border border-slate-200 flex flex-col items-center min-w-[80px]">
                                               <span className="text-xs text-slate-400 uppercase">{key}</span>
-                                              <span className="font-bold text-slate-800">{val.hits}</span>
+                                              <span className="font-bold text-slate-800">{val?.hits || 0}</span>
                                           </div>
                                       ))}
                                   </div>
                               </div>
                           )}
-                          {stats?.co_list && ( 
+                          {stats?.co_list && (
                               <div>
                                   <h4 className="text-sm font-bold text-slate-600 mb-3">搭配统计</h4>
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -971,6 +995,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               </div>
                           )}
+                          <SourceBadge source="special" />
                       </div>
                   )}
 
