@@ -52,8 +52,25 @@ interface CollinsData {
     }[]; 
 }
 
-interface CollinsPrimarySense { definition?: string; word?: string; examples?: { example?: string; tran?: string }[]; }
-interface CollinsPrimaryGramcat { partofspeech?: string; senses?: CollinsPrimarySense[]; audio?: string; }
+interface CollinsPrimaryExample {
+    example?: string;
+    tran?: string;
+    sense?: { word?: string }; // Added for nested translation structure
+}
+
+interface CollinsPrimarySense { 
+    definition?: string; 
+    word?: string; 
+    examples?: CollinsPrimaryExample[]; 
+}
+
+interface CollinsPrimaryGramcat { 
+    partofspeech?: string; 
+    senses?: CollinsPrimarySense[]; 
+    audio?: string; 
+    audiourl?: string; // Added for Collins audio
+}
+
 interface CollinsPrimaryData { gramcat?: CollinsPrimaryGramcat[]; words?: { word?: string }; }
 
 // --- 3. Phrases & Synonyms & Roots ---
@@ -540,7 +557,23 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                           <div className="p-8 space-y-8">
                               {collinsPrimary.map((cat, cIdx) => (
                                   <div key={cIdx}>
-                                      {cat.partofspeech && <div className="text-sm font-bold text-amber-700 bg-amber-50 inline-block px-2 py-1 rounded mb-4">{cat.partofspeech}</div>}
+                                      <div className="flex items-center gap-3 mb-4">
+                                          {cat.partofspeech && (
+                                              <div className="text-sm font-bold text-amber-700 bg-amber-50 inline-block px-2 py-1 rounded border border-amber-100">
+                                                  {cat.partofspeech}
+                                              </div>
+                                          )}
+                                          {cat.audiourl && (
+                                              <button 
+                                                  onClick={() => playUrl(cat.audiourl!)}
+                                                  className="p-1.5 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+                                                  title="Play Collins Audio"
+                                              >
+                                                  <Volume2 className="w-4 h-4" />
+                                              </button>
+                                          )}
+                                      </div>
+                                      
                                       <div className="space-y-6">
                                           {cat.senses?.map((sense, sIdx) => (
                                               <div key={sIdx} className="flex gap-4 group">
@@ -555,7 +588,11 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                                               {sense.examples.map((ex, exIdx) => (
                                                                   <div key={exIdx} className="text-sm text-slate-600 pl-3 border-l-2 border-slate-200">
                                                                       <p>{ex.example}</p>
-                                                                      {ex.tran && <p className="text-slate-400 text-xs">{ex.tran}</p>}
+                                                                      {(ex.sense?.word || ex.tran) && (
+                                                                          <p className="text-slate-400 text-xs mt-0.5">
+                                                                              {ex.sense?.word || ex.tran}
+                                                                          </p>
+                                                                      )}
                                                                   </div>
                                                               ))}
                                                           </div>
