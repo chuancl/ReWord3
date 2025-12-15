@@ -8,6 +8,12 @@ interface WordDetailProps {
   onBack: () => void;
 }
 
+// Helper to handle API inconsistency (single object vs array)
+const toArray = <T,>(candidate: T | T[] | undefined | null): T[] => {
+    if (candidate === undefined || candidate === null) return [];
+    return Array.isArray(candidate) ? candidate : [candidate];
+};
+
 // --- 1. Basic / EC / Expand EC ---
 interface WfObject { name?: string; value?: string; }
 interface WfItem { wf?: WfObject; }
@@ -26,8 +32,17 @@ interface ExpandEcData { word?: ExpandEcItem[]; }
 
 // --- 2. Collins & Collins Primary ---
 interface CollinsSentence { sent_orig?: string; sent_trans?: string; }
-interface CollinsTranEntry { pos_entry?: { pos?: string; pos_tips?: string }; tran?: string; exam_sents?: CollinsSentence[]; }
-interface CollinsEntryWrapper { entry?: { tran_entry?: CollinsTranEntry[]; }[]; }
+interface CollinsTranEntry { 
+    pos_entry?: { pos?: string; pos_tips?: string }; 
+    tran?: string; 
+    exam_sents?: CollinsSentence[] | CollinsSentence; 
+}
+interface CollinsEntry {
+    tran_entry?: CollinsTranEntry[] | CollinsTranEntry;
+}
+interface CollinsEntryWrapper { 
+    entry?: CollinsEntry[] | CollinsEntry; 
+}
 interface CollinsData { collins_entries?: { entries?: CollinsEntryWrapper; star?: number; }[]; }
 
 interface CollinsPrimarySense { definition?: string; word?: string; examples?: { example?: string; tran?: string }[]; }
@@ -569,9 +584,9 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                           </div>
 
                           <div className="p-8 divide-y divide-slate-100">
-                              {collins?.entries?.entry?.map((entry, eIdx) => (
+                              {toArray(collins?.entries?.entry).map((entry, eIdx) => (
                                   <div key={eIdx}>
-                                      {entry.tran_entry?.map((te, tIdx) => (
+                                      {toArray(entry.tran_entry).map((te, tIdx) => (
                                           <div key={tIdx} className="py-4 first:pt-0 last:pb-0">
                                               <div className="flex gap-4">
                                                   <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold shrink-0">{tIdx + 1}</div>
@@ -579,7 +594,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                                       <div className="mb-2 text-slate-800 font-medium" dangerouslySetInnerHTML={{ __html: te.tran || '' }} />
                                                       {te.exam_sents && (
                                                           <div className="space-y-1.5 pl-3 border-l-2 border-slate-200">
-                                                              {te.exam_sents.slice(0, 3).map((ex, exIdx) => (
+                                                              {toArray(te.exam_sents).slice(0, 3).map((ex, exIdx) => (
                                                                   <div key={exIdx} className="text-sm">
                                                                       <p className="text-slate-700">{ex.sent_orig}</p>
                                                                       <p className="text-slate-400 text-xs">{ex.sent_trans}</p>
