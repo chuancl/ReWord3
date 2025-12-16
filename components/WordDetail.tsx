@@ -232,15 +232,28 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                       </div>
                   )}
 
-                  {(hasData('video_lecture') || hasData('video_scene') || hasData('music')) && (
-                      <div ref={el => {
-                          if (hasData('video_lecture')) sectionRefs.current['video_lecture'] = el;
-                          if (hasData('video_scene')) sectionRefs.current['video_scene'] = el;
-                          if (hasData('music')) sectionRefs.current['music'] = el;
-                      }}>
+                  {/* Video Lectures */}
+                  {hasData('video_lecture') && (
+                      <div id="video_lecture" ref={el => sectionRefs.current['video_lecture'] = el}>
                           <MediaSection 
                               wordVideos={data.word_video} 
+                          />
+                      </div>
+                  )}
+
+                  {/* Video Scenes */}
+                  {hasData('video_scene') && (
+                      <div id="video_scene" ref={el => sectionRefs.current['video_scene'] = el}>
+                          <MediaSection 
                               videoSents={data.video_sents} 
+                          />
+                      </div>
+                  )}
+
+                  {/* Music - Separate Block */}
+                  {hasData('music') && (
+                      <div id="music" ref={el => sectionRefs.current['music'] = el}>
+                          <MediaSection 
                               musicSents={data.music_sents} 
                           />
                       </div>

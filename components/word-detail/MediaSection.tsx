@@ -19,7 +19,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
         <div className="space-y-8">
             {/* Video Lectures */}
             {videos.length > 0 && (
-                <div id="video_lecture" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                     <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                         <Youtube className="w-5 h-5 text-red-600" />
                         <h3 className="text-lg font-bold text-slate-800">视频讲解</h3>
@@ -43,7 +43,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
 
             {/* Real Scene Videos */}
             {realVideos.length > 0 && (
-                <div id="video_scene" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                     <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                         <Tv className="w-5 h-5 text-purple-600" />
                         <h3 className="text-lg font-bold text-slate-800">实景视频</h3>
@@ -77,7 +77,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
 
             {/* Music */}
             {music.length > 0 && (
-                <div id="music" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                     <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                         <Music className="w-5 h-5 text-pink-500" />
                         <h3 className="text-lg font-bold text-slate-800">原声歌曲</h3>
