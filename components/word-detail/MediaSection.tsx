@@ -234,13 +234,42 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
                     <div className="max-w-3xl mx-auto text-center space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-300" key={activeMusicIndex}>
                         <div><h4 className="text-xl font-bold text-slate-900 mb-1">{activeMusic.songName || activeMusic.song_name || 'Unknown Song'}</h4><div className="flex items-center justify-center text-sm text-pink-600 font-medium"><Mic2 className="w-3.5 h-3.5 mr-1.5" />{activeMusic.singer || 'Unknown Artist'}</div></div>
                         <div className="relative bg-slate-50 rounded-xl p-6 border border-slate-100 shadow-inner">
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 py-1 rounded-full border border-slate-100 shadow-sm text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lyrics Preview</div>
-                            {(activeMusic.lyric || activeMusic.sents) ? (
-                                <div className="space-y-4 max-h-40 overflow-y-auto custom-scrollbar">
-                                    {activeMusic.lyric ? <div className="font-serif text-slate-700 text-lg leading-relaxed" dangerouslySetInnerHTML={{ __html: activeMusic.lyric }} /> : activeMusic.sents?.map((s: any, sIdx: number) => <p key={sIdx} className="font-serif text-slate-700 text-lg leading-relaxed">"{s.eng}"</p>)}
-                                    {(activeMusic.lyricTranslation || (activeMusic.sents && activeMusic.sents[0]?.chn)) && <div className="pt-3 border-t border-slate-200/60 mt-2"><p className="text-sm text-slate-500 font-medium">{activeMusic.lyricTranslation || activeMusic.sents?.[0]?.chn}</p></div>}
-                                </div>
-                            ) : <div className="text-slate-400 italic text-sm py-4">暂无歌词预览</div>}
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 py-1 rounded-full border border-slate-100 shadow-sm text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                {activeMusic.lyricList ? 'Full Lyrics' : 'Lyrics Preview'}
+                            </div>
+                            
+                            <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar px-2">
+                                {activeMusic.lyricList && activeMusic.lyricList.length > 0 ? (
+                                    <div className="space-y-6 py-2">
+                                        {activeMusic.lyricList.map((line, lIdx) => (
+                                            <div key={lIdx} className="text-center group">
+                                                <p className="font-serif text-slate-800 text-base leading-relaxed group-hover:text-pink-600 transition-colors">{line.content}</p>
+                                                {line.translate && <p className="text-sm text-slate-500 mt-1 group-hover:text-slate-600">{line.translate}</p>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (activeMusic.lyric || activeMusic.sents) ? (
+                                    <>
+                                        {activeMusic.lyric ? (
+                                            <div className="font-serif text-slate-700 text-lg leading-relaxed" dangerouslySetInnerHTML={{ __html: activeMusic.lyric }} />
+                                        ) : (
+                                            activeMusic.sents?.map((s: any, sIdx: number) => (
+                                                <div key={sIdx}>
+                                                    <p className="font-serif text-slate-700 text-lg leading-relaxed">"{s.eng}"</p>
+                                                    {s.chn && <p className="text-sm text-slate-500 mt-1">{s.chn}</p>}
+                                                </div>
+                                            ))
+                                        )}
+                                        {(!activeMusic.lyricList && !activeMusic.sents && activeMusic.lyricTranslation) && (
+                                            <div className="pt-3 border-t border-slate-200/60 mt-2">
+                                                <p className="text-sm text-slate-500 font-medium">{activeMusic.lyricTranslation}</p>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="text-slate-400 italic text-sm py-4">暂无歌词预览</div>
+                                )}
+                            </div>
                         </div>
                         <div className="flex justify-center gap-4 pt-2">{(activeMusic.link || activeMusic.url) && <a href={activeMusic.link || activeMusic.url} target="_blank" rel="noreferrer" className="inline-flex items-center px-4 py-2 bg-pink-50 text-pink-600 rounded-full text-sm font-bold hover:bg-pink-100 transition"><ExternalLink className="w-4 h-4 mr-2" />在音乐平台收听完整版</a>}</div>
                     </div>

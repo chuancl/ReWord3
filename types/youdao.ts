@@ -137,6 +137,7 @@ export interface MusicSentItem {
     lyricTranslation?: string;// Lyric Translation
     singer?: string;          // Artist
     songName?: string;        // Title
+    lyricList?: { content?: string; translate?: string }[]; // New: Full lyric list
 
     // Legacy / Fallback fields
     sents?: { eng?: string; chn?: string }[]; 
