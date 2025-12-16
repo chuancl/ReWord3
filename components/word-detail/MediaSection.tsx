@@ -12,8 +12,12 @@ interface MediaSectionProps {
 
 export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSents, musicSents }) => {
     const videos = wordVideos?.word_videos || [];
-    const realVideos = videoSents?.video_sent || [];
-    const music = musicSents?.music_sent || [];
+    
+    // Enhanced data extraction: check for 'video_sent' (standard) or fallback to 'sent'
+    const realVideos = videoSents?.video_sent || (videoSents as any)?.sent || [];
+    
+    // Enhanced data extraction: check for 'music_sent' (standard) or fallback to 'songs'
+    const music = musicSents?.music_sent || (musicSents as any)?.songs || [];
 
     return (
         <div className="space-y-8">
@@ -49,7 +53,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                         <h3 className="text-lg font-bold text-slate-800">实景视频</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {realVideos.map((v, idx) => (
+                        {realVideos.map((v: any, idx: number) => (
                             <div key={idx} className="bg-slate-50 rounded-xl overflow-hidden border border-slate-200">
                                 <a href={v.url} target="_blank" rel="noopener noreferrer" className="block relative aspect-video bg-slate-900 group">
                                     {v.cover && <img src={v.cover} className="w-full h-full object-cover opacity-90 group-hover:opacity-75 transition" />}
@@ -60,7 +64,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                     </div>
                                 </a>
                                 <div className="p-4">
-                                    {v.sents?.map((s, sIdx) => (
+                                    {v.sents?.map((s: any, sIdx: number) => (
                                         <div key={sIdx} className="space-y-1">
                                             <p className="text-sm font-medium text-slate-800 line-clamp-2" title={s.eng}>{s.eng}</p>
                                             <p className="text-xs text-slate-500 line-clamp-1">{s.chn}</p>
@@ -83,13 +87,13 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                         <h3 className="text-lg font-bold text-slate-800">原声歌曲</h3>
                     </div>
                     <div className="space-y-4">
-                        {music.map((m, idx) => (
+                        {music.map((m: any, idx: number) => (
                             <div key={idx} className="flex gap-4 items-center bg-pink-50/30 p-4 rounded-xl border border-pink-100">
                                 <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center shrink-0">
                                     <Music className="w-6 h-6 text-pink-500" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    {m.sents?.map((s, sIdx) => (
+                                    {m.sents?.map((s: any, sIdx: number) => (
                                         <div key={sIdx}>
                                             <p className="font-serif text-slate-800 italic text-lg leading-relaxed">"{s.eng}"</p>
                                             <p className="text-sm text-slate-500 mt-1">{s.chn}</p>
