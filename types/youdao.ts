@@ -1,0 +1,138 @@
+
+// --- 1. Basic / EC / Expand EC ---
+export interface WfObject { name?: string; value?: string; }
+export interface WfItem { wf?: WfObject; }
+export interface TrObject { l?: { i?: string[] }; }
+export interface EcWord { 
+    usphone?: string; 
+    ukphone?: string; 
+    trs?: { tr?: TrObject[]; }[]; 
+    return_phrase?: { l?: { i?: string } };
+    wfs?: WfItem[]; 
+}
+export interface EcData { word?: EcWord[]; exam_type?: string[]; }
+
+export interface ExpandEcItem { transList?: { content?: { sents?: { sentOrig?: string; sentTrans?: string }[] }; trans?: string; }[]; pos?: string; }
+export interface ExpandEcData { word?: ExpandEcItem[]; }
+
+// --- 2. Collins & Collins Primary ---
+export interface CollinsSentence { sent_orig?: string; sent_trans?: string; }
+export interface CollinsTranEntry { 
+    pos_entry?: { pos?: string; pos_tips?: string }; 
+    tran?: string; 
+    exam_sents?: CollinsSentence[] | CollinsSentence; 
+}
+export interface CollinsEntry {
+    tran_entry?: CollinsTranEntry[] | CollinsTranEntry;
+}
+export interface CollinsEntryWrapper { 
+    entry?: CollinsEntry[] | CollinsEntry; 
+}
+// Updated: collins_entries is an array representing "super headwords" groups
+export interface CollinsData { 
+    collins_entries?: { 
+        entries?: CollinsEntryWrapper; 
+        star?: number; 
+        headword?: string;
+    }[]; 
+}
+
+export interface CollinsPrimaryExample {
+    example?: string;
+    tran?: string;
+    sense?: { word?: string }; // Added for nested translation structure
+}
+
+export interface CollinsPrimarySense { 
+    definition?: string; 
+    word?: string; 
+    examples?: CollinsPrimaryExample[]; 
+}
+
+export interface CollinsPrimaryGramcat { 
+    partofspeech?: string; 
+    senses?: CollinsPrimarySense[]; 
+    audio?: string; 
+    audiourl?: string; // Added for Collins audio
+}
+
+export interface CollinsPrimaryData { gramcat?: CollinsPrimaryGramcat[]; words?: { word?: string }; }
+
+// --- 3. Phrases & Synonyms & Roots ---
+export interface PhrItem { headword?: { l?: { i?: string } }; trs?: { tr?: { l?: { i?: string } }[]; }[]; }
+export interface PhrsData { phrs?: PhrItem[]; }
+export interface SynoItem { pos?: string; tran?: string; ws?: { w?: string }[]; }
+export interface SynoData { synos?: { syno?: SynoItem; }[]; }
+export interface RelItem { pos?: string; words?: { word?: string; tran?: string }[]; }
+export interface RelWordData { rels?: { rel?: RelItem; }[]; }
+
+// --- 4. Etymology ---
+export interface EtymItem { word?: string; desc?: string; source?: string; }
+export interface EtymData { etyms?: { zh?: EtymItem; en?: EtymItem }; }
+
+// --- 5. Sentences (Bilingual & Media) ---
+export interface SentencePair { "sentence-eng"?: string; "sentence-translation"?: string; "sentence-speech"?: string; source?: string; }
+export interface BilingualSentenceData { "sentence-pair"?: SentencePair[]; }
+
+export interface MediaSentSnippet { name?: string; source?: string; streamUrl?: string; imageUrl?: string; sw?: string; } // sw = sentence word highlight?
+export interface MediaSentItem { eng?: string; chn?: string; snippets?: { snippet?: MediaSentSnippet[] }; }
+export interface MediaSentsPartData { sent?: MediaSentItem[]; }
+
+// --- 6. EE (English-English) ---
+export interface EeItem { pos?: string; tr?: { l?: { i?: string }; "similar-words"?: string[] }[]; }
+export interface EeData { word?: { trs?: EeItem[] }; }
+
+// --- 7. Images (pic_dict) ---
+export interface PicItem { image?: string; host?: string; }
+export interface PicDictData { pic?: PicItem[]; }
+
+// --- 8. Videos (word_video, video_sents) ---
+export interface WordVideoItem { video?: { title?: string; cover?: string; url?: string; }; }
+export interface WordVideoData { word_videos?: WordVideoItem[]; }
+
+export interface VideoSentItem { sents?: { eng?: string; chn?: string }[]; cover?: string; url?: string; source?: string; }
+export interface VideoSentsData { video_sent?: VideoSentItem[]; }
+
+// --- 9. Music (music_sents) ---
+export interface MusicSentItem { sents?: { eng?: string; chn?: string }[]; song_name?: string; singer?: string; url?: string; cover?: string; }
+export interface MusicSentsData { music_sent?: MusicSentItem[]; }
+
+// --- 10. Wikipedia & Web Trans ---
+export interface WikiDigestData { summarys?: { summary?: string; key?: string }[]; source?: { name?: string; url?: string }; }
+export interface WebTransItem { key?: string; trans?: { value?: string; support?: number }[]; }
+export interface WebTransData { web_translation?: WebTransItem[]; }
+
+// --- 11. Exams (individual) ---
+export interface ExamQuestion { question?: string; answer?: string; choices?: string[]; source?: string; } // Hypothetical structure, adapting to common fields
+export interface IndividualData { idiomatic?: { level?: string; exam?: { question?: string; answer?: { explain?: string }; choices?: { choice?: string }[] }[] }[]; }
+
+// --- 12. Special (Stats) ---
+export interface SpecialData { summary?: { sources?: { [key:string]: { hits: number } } }; co_list?: { gene?: string; entries?: { k?: string; v?: string }[] }[]; }
+
+// Root Response
+export interface YoudaoResponse {
+  ec?: EcData;
+  expand_ec?: ExpandEcData;
+  collins?: CollinsData;
+  collins_primary?: CollinsPrimaryData;
+  ee?: EeData;
+  
+  phrs?: PhrsData;
+  syno?: SynoData;
+  rel_word?: RelWordData;
+  etym?: EtymData;
+  
+  blng_sents_part?: BilingualSentenceData;
+  media_sents_part?: MediaSentsPartData;
+  video_sents?: VideoSentsData;
+  music_sents?: MusicSentsData;
+  word_video?: WordVideoData;
+  
+  pic_dict?: PicDictData;
+  wikipedia_digest?: WikiDigestData;
+  web_trans?: WebTransData;
+  
+  special?: SpecialData;
+  individual?: IndividualData;
+  discrim?: { discrims?: { title?: string; desc?: string }[] };
+}
