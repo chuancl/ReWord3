@@ -166,8 +166,31 @@ export interface WebTransItem {
 export interface WebTransData { "web-translation"?: WebTransItem[]; }
 
 // --- 11. Exams (individual) ---
-export interface ExamQuestion { question?: string; answer?: string; choices?: string[]; source?: string; } // Hypothetical structure, adapting to common fields
-export interface IndividualData { idiomatic?: { level?: string; exam?: { question?: string; answer?: { explain?: string }; choices?: { choice?: string }[] }[] }[]; }
+export interface QuestionTypeInfo {
+    type?: string;
+    time?: number;
+}
+
+export interface PastExamSent {
+    en?: string;
+    zh?: string;
+    source?: string;
+}
+
+export interface IdiomaticItem {
+    colloc?: {
+        en?: string;
+        zh?: string;
+    };
+}
+
+export interface IndividualData {
+    examInfo?: {
+        questionTypeInfo?: QuestionTypeInfo[];
+    };
+    pastExamSents?: PastExamSent[];
+    idiomatic?: IdiomaticItem[];
+}
 
 // --- 12. Special (Stats) ---
 export interface SpecialData { summary?: { sources?: { [key:string]: { hits: number } } }; co_list?: { gene?: string; entries?: { k?: string; v?: string }[] }[]; }

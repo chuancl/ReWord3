@@ -147,8 +147,8 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
           case 'etym': return !!(data.etym?.etyms?.zh || data.etym?.etyms?.en);
           case 'sentences': return (data.blng_sents_part?.["sentence-pair"]?.length || 0) > 0;
           case 'media_sents': return (data.media_sents_part?.sent?.length || 0) > 0;
-          case 'exams': return (data.individual?.idiomatic?.length || 0) > 0;
-          // Updated Check for WebTrans: Use both possible keys just in case
+          // Updated Exams Check: Look for examInfo OR pastExamSents OR idiomatic phrases
+          case 'exams': return !!(data.individual?.examInfo?.questionTypeInfo?.length || data.individual?.pastExamSents?.length || data.individual?.idiomatic?.length);
           case 'web_trans': return (data.web_trans?.["web-translation"]?.length || (data.web_trans as any)?.["web_translation"]?.length || 0) > 0;
           case 'wiki': return (data.wikipedia_digest?.summarys?.length || 0) > 0;
           case 'discrim': return (data.discrim?.discrims?.length || 0) > 0;

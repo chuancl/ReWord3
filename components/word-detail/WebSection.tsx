@@ -1,14 +1,20 @@
 
 import React from 'react';
-import { FileQuestion, Network, BookOpen, Volume2, Tag } from 'lucide-react';
+import { FileQuestion, Network, BookOpen, Volume2, Tag, CheckCircle2, Quote } from 'lucide-react';
 import { IndividualData, WebTransData, WikiDigestData } from '../../types/youdao';
 import { SourceBadge } from './SourceBadge';
 import { playUrl } from '../../utils/audio';
 
 // --- 1. Exams Section ---
 export const ExamsSection: React.FC<{ individual?: IndividualData }> = ({ individual }) => {
-    const exams = individual?.idiomatic || [];
-    if (exams.length === 0) return null;
+    if (!individual) return null;
+    
+    const { examInfo, pastExamSents, idiomatic } = individual;
+    const questionTypes = examInfo?.questionTypeInfo || [];
+    const sentences = pastExamSents || [];
+    const phrases = idiomatic || [];
+
+    if (questionTypes.length === 0 && sentences.length === 0 && phrases.length === 0) return null;
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
@@ -16,33 +22,67 @@ export const ExamsSection: React.FC<{ individual?: IndividualData }> = ({ indivi
                 <FileQuestion className="w-5 h-5 text-indigo-500" />
                 <h3 className="text-lg font-bold text-slate-800">考试真题 (Exams)</h3>
             </div>
-            <div className="space-y-6">
-                {exams.map((idiom, idx) => (
-                    <div key={idx}>
-                        {idiom.exam?.map((q, qIdx) => (
-                            <div key={qIdx} className="bg-slate-50 p-5 rounded-xl border border-slate-200 mb-4">
-                                <div className="flex items-center justify-between mb-3">
-                                    <span className="text-xs font-bold text-white bg-indigo-500 px-2 py-0.5 rounded">{idiom.level || '真题'}</span>
-                                </div>
-                                <p className="text-slate-800 font-medium mb-3">{q.question}</p>
-                                {q.choices && (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-                                        {q.choices.map((c, cIdx) => (
-                                            <div key={cIdx} className="text-sm text-slate-600 bg-white px-3 py-2 rounded border border-slate-100">{c.choice}</div>
-                                        ))}
-                                    </div>
-                                )}
-                                {q.answer && (
-                                    <div className="text-sm text-slate-500 pt-3 border-t border-slate-200 mt-3">
-                                        <span className="font-bold text-indigo-600 mr-2">解析:</span>
-                                        {q.answer.explain}
-                                    </div>
-                                )}
+
+            {/* 1. Exam Frequency Stats (Tag Cloud) */}
+            {questionTypes.length > 0 && (
+                <div className="mb-8">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
+                        <Tag className="w-3 h-3 mr-1.5" /> 题型出现频率
+                    </h4>
+                    <div className="flex flex-wrap gap-3">
+                        {questionTypes.map((q, idx) => (
+                            <div key={idx} className="flex items-center bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-1.5 hover:shadow-sm transition-all group cursor-default">
+                                <span className="text-sm font-bold text-indigo-700 mr-2 group-hover:text-indigo-800">{q.type}</span>
+                                <span className="text-xs font-bold text-white bg-indigo-400 px-1.5 py-0.5 rounded-md min-w-[24px] text-center">
+                                    {q.time}
+                                </span>
                             </div>
                         ))}
                     </div>
-                ))}
-            </div>
+                </div>
+            )}
+
+            {/* 2. Past Exam Sentences */}
+            {sentences.length > 0 && (
+                <div className="mb-8">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
+                        <Quote className="w-3 h-3 mr-1.5" /> 真题例句
+                    </h4>
+                    <div className="space-y-4">
+                        {sentences.slice(0, 5).map((sent, idx) => (
+                            <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-slate-50/80 transition-colors">
+                                <p className="text-slate-800 font-medium leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: sent.en || '' }} />
+                                <div className="flex items-start justify-between gap-4">
+                                    <p className="text-sm text-slate-500">{sent.zh}</p>
+                                    {sent.source && (
+                                        <span className="shrink-0 text-[10px] font-bold text-indigo-600 bg-white border border-indigo-100 px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap">
+                                            {sent.source}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* 3. Idiomatic Phrases */}
+            {phrases.length > 0 && (
+                <div>
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
+                        <CheckCircle2 className="w-3 h-3 mr-1.5" /> 考点词组
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {phrases.map((phrase, idx) => (
+                            <div key={idx} className="flex flex-col p-3 border border-slate-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all bg-white group">
+                                <span className="font-bold text-slate-700 text-sm mb-1 group-hover:text-indigo-700 transition-colors">{phrase.colloc?.en}</span>
+                                <span className="text-xs text-slate-500">{phrase.colloc?.zh}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+            
             <SourceBadge source="individual" />
         </div>
     );
