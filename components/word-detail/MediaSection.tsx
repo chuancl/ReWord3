@@ -23,10 +23,47 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
     // --- Video Carousel State ---
     const [activeVideoIndex, setActiveVideoIndex] = useState(0);
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    const [subtitleTrackUrl, setSubtitleTrackUrl] = useState<string | null>(null);
     
     // --- Music Carousel State ---
     const [activeMusicIndex, setActiveMusicIndex] = useState(0);
     const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+
+    const activeVideo = realVideos[activeVideoIndex];
+
+    // Generate VTT for active video
+    useEffect(() => {
+        if (!activeVideo) {
+            setSubtitleTrackUrl(null);
+            return;
+        }
+
+        let vttText = "WEBVTT\n\n";
+        // Default duration for short clips (1 minute) to ensure subtitle stays visible
+        const timeRange = "00:00.000 --> 00:59.000";
+        let hasContent = false;
+
+        if (activeVideo.sents && activeVideo.sents.length > 0) {
+            // Combine all sentences into one block since we lack timestamps
+            const combinedText = activeVideo.sents.map((s: any) => 
+                `${s.eng || ''}\n${s.chn || ''}`
+            ).join('\n\n');
+            vttText += `1\n${timeRange}\n${combinedText}`;
+            hasContent = true;
+        } else if (activeVideo.subtitle_srt) {
+            vttText += `1\n${timeRange}\n${activeVideo.subtitle_srt}`;
+            hasContent = true;
+        }
+
+        if (hasContent) {
+            const blob = new Blob([vttText], { type: 'text/vtt' });
+            const url = URL.createObjectURL(blob);
+            setSubtitleTrackUrl(url);
+            return () => URL.revokeObjectURL(url);
+        } else {
+            setSubtitleTrackUrl(null);
+        }
+    }, [activeVideo]);
 
     // Stop audio when switching items
     useEffect(() => {
@@ -77,7 +114,6 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
     };
 
     const activeMusic = musicList[activeMusicIndex];
-    const activeVideo = realVideos[activeVideoIndex];
 
     return (
         <div className="space-y-8">
@@ -172,7 +208,18 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                                 autoPlay 
                                                 className="w-full h-full object-contain"
                                                 onEnded={() => setIsVideoPlaying(false)}
-                                            />
+                                            >
+                                                {/* Use Native Subtitles Track */}
+                                                {subtitleTrackUrl && (
+                                                    <track 
+                                                        default
+                                                        kind="captions" 
+                                                        srcLang="en" 
+                                                        label="English/Chinese" 
+                                                        src={subtitleTrackUrl} 
+                                                    />
+                                                )}
+                                            </video>
                                         ) : (
                                             <>
                                                 {cover ? (
@@ -200,25 +247,25 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                             </>
                                         )}
 
-                                        {/* --- Embedded Subtitles --- */}
-                                        {isActive && (
-                                            <div className={`absolute bottom-0 left-0 right-0 p-4 transition-opacity duration-300 ${isVideoPlaying ? 'opacity-100' : 'opacity-100 bg-gradient-to-t from-black/80 via-black/40 to-transparent'}`}>
+                                        {/* --- Static Subtitle Preview (Only when NOT playing) --- */}
+                                        {isActive && !isVideoPlaying && (
+                                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
                                                 <div className="text-center">
                                                     {v.sents && v.sents.length > 0 ? (
                                                         v.sents.map((s: any, idx: number) => (
                                                             <div key={idx} className="mb-1 last:mb-0">
-                                                                <p className="text-white text-base md:text-lg font-bold leading-tight drop-shadow-md" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-                                                                    {s.eng}
+                                                                <p className="text-white text-base md:text-lg font-bold leading-tight drop-shadow-md font-serif italic" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                                                                    "{s.eng}"
                                                                 </p>
                                                                 {s.chn && (
-                                                                    <p className="text-white/90 text-xs md:text-sm mt-1 font-medium drop-shadow-md" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                                                                    <p className="text-white/80 text-xs md:text-sm mt-1 font-medium drop-shadow-md">
                                                                         {s.chn}
                                                                     </p>
                                                                 )}
                                                             </div>
                                                         ))
                                                     ) : v.subtitle_srt ? (
-                                                        <p className="text-white text-sm font-medium drop-shadow-md" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                                                        <p className="text-white text-sm font-medium drop-shadow-md line-clamp-3">
                                                             {v.subtitle_srt}
                                                         </p>
                                                     ) : null}
@@ -401,7 +448,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                         )}
                     </div>
 
-                    {/* Info Panel */}
+                    {/* Info Panel  */}
                     <div className="bg-white p-6 md:p-8 min-h-[200px]">
                         {activeMusic ? (
                             <div className="max-w-3xl mx-auto text-center space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-300" key={activeMusicIndex}>
