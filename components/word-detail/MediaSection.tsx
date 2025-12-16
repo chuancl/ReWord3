@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Youtube, Tv, Music, Volume2, ExternalLink, PlayCircle, Disc, Mic2, PauseCircle } from 'lucide-react';
-import { WordVideoData, VideoSentsData, MusicSentsData } from '../../types/youdao';
+import { WordVideoData, VideoSentsData, MusicSentsData, MusicSentItem } from '../../types/youdao';
 import { SourceBadge } from './SourceBadge';
 import { playUrl, stopAudio } from '../../utils/audio';
 
@@ -14,25 +14,25 @@ interface MediaSectionProps {
 export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSents, musicSents }) => {
     const videos = wordVideos?.word_videos || [];
     
-    // Enhanced data extraction
+    // Enhanced data extraction for real videos
     const realVideos = videoSents?.video_sent || (videoSents as any)?.sent || [];
     
-    // Music data extraction strategy
-    const music = musicSents?.sents_data || musicSents?.music_sent || (musicSents as any)?.songs || [];
+    // Music data extraction strategy: prioritized sents_data
+    const musicList: MusicSentItem[] = musicSents?.sents_data || musicSents?.music_sent || (musicSents as any)?.songs || [];
 
-    // Local state to track which music item is currently "active" in UI (for play icon toggle)
-    // Note: Actual audio state is handled globally in utils/audio.ts, this is just for UI feedback
+    // Local state to track which music item is currently "active" in UI
     const [playingMusicIndex, setPlayingMusicIndex] = useState<number | null>(null);
 
     const handlePlayMusic = async (url: string, index: number) => {
         if (playingMusicIndex === index) {
-            // Toggle off
+            // Toggle off (Stop)
             stopAudio();
             setPlayingMusicIndex(null);
         } else {
             // Play new
             setPlayingMusicIndex(index);
             try {
+                // playUrl internally calls stopAudio() to ensure exclusivity
                 await playUrl(url);
                 setPlayingMusicIndex(null); // Reset icon when done
             } catch (e) {
@@ -102,90 +102,115 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
             )}
 
             {/* Music */}
-            {music.length > 0 && (
+            {musicList.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                     <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                         <Music className="w-5 h-5 text-pink-500" />
                         <h3 className="text-lg font-bold text-slate-800">原声歌曲</h3>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {music.map((m: any, idx: number) => {
-                            // Determine display URLs
-                            const snippetUrl = m.playUrl; 
-                            const fullUrl = m.link || m.url;
+                    <div className="space-y-4">
+                        {musicList.map((m, idx) => {
+                            // Unified field mapping based on user specs and fallbacks
+                            const title = m.songName || m.song_name || 'Unknown Song';
+                            const artist = m.singer || 'Unknown Artist';
+                            const cover = m.coverImg || m.cover;
+                            const playLink = m.playUrl || m.url; // Snippet
+                            const fullLink = m.link || m.url;    // Full
+                            const lyricHtml = m.lyric || '';
+                            const lyricTrans = m.lyricTranslation || '';
+                            const legacySents = m.sents;
 
                             return (
-                                <div key={idx} className="flex flex-col bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-pink-200 transition group">
-                                    {/* Top: Metadata Row */}
-                                    <div className="p-4 flex items-center gap-4 bg-slate-50/50">
-                                        <div className="relative shrink-0">
-                                            <div className={`w-14 h-14 rounded-full border-2 border-white shadow-sm overflow-hidden flex items-center justify-center bg-pink-100 ${playingMusicIndex === idx ? 'animate-spin-slow' : ''}`}>
-                                                {m.cover ? (
-                                                    <img src={m.cover} className="w-full h-full object-cover" alt={m.song_name} />
-                                                ) : (
-                                                    <Disc className="w-6 h-6 text-pink-400" />
-                                                )}
-                                            </div>
-                                            {/* Status Dot */}
+                                <div key={idx} className="flex flex-col sm:flex-row gap-5 bg-pink-50/20 p-5 rounded-2xl border border-pink-100 hover:border-pink-200 transition-all group">
+                                    {/* Left: Album Art & Controls */}
+                                    <div className="flex sm:flex-col items-center gap-4 shrink-0 sm:w-24">
+                                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden shadow-md border border-pink-100 bg-white">
+                                            {cover ? (
+                                                <img src={cover} className="w-full h-full object-cover" alt={title} />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-pink-50">
+                                                    <Disc className="w-8 h-8 text-pink-300" />
+                                                </div>
+                                            )}
+                                            {/* Overlay Play Status */}
                                             {playingMusicIndex === idx && (
-                                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-pink-500 rounded-full border-2 border-white flex items-center justify-center">
-                                                    <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
+                                                    <div className="w-3 h-3 bg-pink-500 rounded-full animate-ping"></div>
                                                 </div>
                                             )}
                                         </div>
                                         
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-slate-800 truncate text-sm" title={m.song_name}>{m.song_name || 'Unknown Song'}</h4>
-                                            <div className="flex items-center text-xs text-slate-500 mt-1">
-                                                <Mic2 className="w-3 h-3 mr-1 text-slate-400"/>
-                                                <span className="truncate">{m.singer || 'Unknown Artist'}</span>
-                                            </div>
+                                        <div className="flex gap-2">
+                                            {playLink && (
+                                                <button 
+                                                    onClick={() => handlePlayMusic(playLink, idx)}
+                                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                                                        playingMusicIndex === idx 
+                                                        ? 'bg-pink-500 text-white shadow-lg shadow-pink-200 scale-110' 
+                                                        : 'bg-white text-pink-500 border border-pink-200 hover:bg-pink-50'
+                                                    }`}
+                                                    title={playingMusicIndex === idx ? "Pause" : "Play Snippet"}
+                                                >
+                                                    {playingMusicIndex === idx ? <PauseCircle className="w-5 h-5"/> : <PlayCircle className="w-5 h-5"/>}
+                                                </button>
+                                            )}
+                                            {fullLink && (
+                                                <a 
+                                                    href={fullLink} 
+                                                    target="_blank" 
+                                                    rel="noreferrer" 
+                                                    className="w-8 h-8 rounded-full flex items-center justify-center bg-white text-slate-400 border border-slate-200 hover:text-pink-500 hover:border-pink-200 transition-colors"
+                                                    title="完整版链接"
+                                                >
+                                                    <ExternalLink className="w-4 h-4" />
+                                                </a>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {/* Middle: Lyrics Snippet */}
-                                    <div className="px-4 py-3 flex-1 border-t border-b border-slate-50 bg-white">
-                                        {m.sents?.map((s: any, sIdx: number) => (
-                                            <div key={sIdx} className="space-y-1">
-                                                <p className="font-serif italic text-slate-700 text-sm leading-relaxed border-l-2 border-pink-300 pl-3">
-                                                    "{s.eng}"
-                                                </p>
-                                                {s.chn && <p className="text-xs text-slate-400 pl-3">{s.chn}</p>}
+                                    {/* Right: Info & Lyrics */}
+                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                        <div className="mb-3">
+                                            <h4 className="text-base font-bold text-slate-800 leading-tight">{title}</h4>
+                                            <div className="flex items-center text-xs text-slate-500 mt-1">
+                                                <Mic2 className="w-3 h-3 mr-1 text-pink-400"/>
+                                                <span>{artist}</span>
                                             </div>
-                                        ))}
-                                    </div>
+                                        </div>
 
-                                    {/* Bottom: Actions */}
-                                    <div className="px-4 py-3 flex items-center justify-between bg-slate-50/80">
-                                        {/* Play Snippet */}
-                                        {snippetUrl ? (
-                                            <button 
-                                                onClick={() => handlePlayMusic(snippetUrl, idx)}
-                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                                                    playingMusicIndex === idx 
-                                                    ? 'bg-pink-100 text-pink-600 ring-1 ring-pink-200' 
-                                                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200'
-                                                }`}
-                                            >
-                                                {playingMusicIndex === idx ? <PauseCircle className="w-4 h-4"/> : <PlayCircle className="w-4 h-4"/>}
-                                                {playingMusicIndex === idx ? 'Playing...' : '试听片段'}
-                                            </button>
-                                        ) : (
-                                            <span className="text-xs text-slate-300 select-none">无试听</span>
-                                        )}
-
-                                        {/* Full Link */}
-                                        {fullUrl && (
-                                            <a 
-                                                href={fullUrl} 
-                                                target="_blank" 
-                                                rel="noreferrer" 
-                                                className="text-xs text-slate-400 hover:text-pink-600 flex items-center transition-colors"
-                                                title="跳转到完整歌曲"
-                                            >
-                                                完整版 <ExternalLink className="w-3 h-3 ml-1" />
-                                            </a>
-                                        )}
+                                        {/* Lyrics Area */}
+                                        <div className="bg-white rounded-xl border border-pink-50 p-4 shadow-sm relative overflow-hidden">
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-pink-400 opacity-50"></div>
+                                            
+                                            {/* Primary Lyric (HTML support for highlights) */}
+                                            {(lyricHtml || legacySents) ? (
+                                                <div className="space-y-3">
+                                                    {lyricHtml ? (
+                                                        <div 
+                                                            className="font-serif text-slate-700 text-base leading-relaxed"
+                                                            dangerouslySetInnerHTML={{ __html: lyricHtml }} 
+                                                        />
+                                                    ) : (
+                                                        legacySents?.map((s: any, sIdx: number) => (
+                                                            <p key={sIdx} className="font-serif text-slate-700 text-base leading-relaxed">
+                                                                "{s.eng}"
+                                                            </p>
+                                                        ))
+                                                    )}
+                                                    
+                                                    {/* Translation */}
+                                                    {(lyricTrans || (legacySents && legacySents[0]?.chn)) && (
+                                                        <div className="pt-2 border-t border-slate-50 mt-1">
+                                                            <p className="text-sm text-slate-500">
+                                                                {lyricTrans || legacySents?.[0]?.chn}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="text-xs text-slate-400 italic">暂无歌词预览</div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );

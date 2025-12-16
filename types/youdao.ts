@@ -105,14 +105,20 @@ export interface VideoSentsData { video_sent?: VideoSentItem[]; }
 
 // --- 9. Music (music_sents) ---
 export interface MusicSentItem { 
+    // Field names from user feedback
+    link?: string;            // Original song link (Full)
+    playUrl?: string;         // Snippet Audio
+    coverImg?: string;        // Cover Image
+    lyric?: string;           // Lyric (HTML)
+    lyricTranslation?: string;// Lyric Translation
+    singer?: string;          // Artist
+    songName?: string;        // Title
+
+    // Legacy / Fallback fields
     sents?: { eng?: string; chn?: string }[]; 
     song_name?: string; 
-    singer?: string; 
     url?: string; 
     cover?: string;
-    // New fields based on user feedback
-    link?: string;     // Original song link
-    playUrl?: string;  // Snippet audio link
 }
 export interface MusicSentsData { 
     music_sent?: MusicSentItem[]; 
