@@ -12,7 +12,8 @@ export default defineConfig({
       "https://*.tencentcloudapi.com/*",
       "https://translation.googleapis.com/*",
       "https://api-free.deepl.com/*",
-      "https://dict.youdao.com/*"
+      "https://dict.youdao.com/*",
+      "https://service.iciba.com/*"
     ],
     action: {
       default_title: '打开 Re-Word 设置'
