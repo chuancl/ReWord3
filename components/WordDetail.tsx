@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { ArrowLeft, BookOpen, Star, Layers, Share2, Quote, GitBranch, Globe, Loader2, History, Split, Hash, Image as ImageIcon, Youtube, Music, Tv, FileQuestion, Network, BarChart2, Volume2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Star, Layers, Share2, Quote, GitBranch, Globe, Loader2, History, Split, Hash, Image as ImageIcon, Youtube, Music, Tv, FileQuestion, Network, Volume2 } from 'lucide-react';
 import { YoudaoResponse } from '../types/youdao';
 import { BasicInfo } from './word-detail/BasicInfo';
 import { ImageGallery } from './word-detail/ImageGallery';
@@ -38,7 +38,6 @@ const SECTIONS = [
   { id: 'exams', label: '考试真题', icon: FileQuestion },
   { id: 'web_trans', label: '网络释义', icon: Network },
   { id: 'wiki', label: '维基百科', icon: BookOpen },
-  { id: 'stats', label: '词频统计', icon: BarChart2 },
 ];
 
 export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
@@ -140,8 +139,8 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
           case 'collins_old': return (data.collins?.collins_entries?.length || 0) > 0;
           case 'ee': return (data.ee?.word?.trs?.length || 0) > 0;
           case 'video_lecture': return (data.word_video?.word_videos?.length || 0) > 0;
-          // Video Scenes
-          case 'video_scene': return (data.video_sents?.video_sent?.length || (data.video_sents as any)?.sent?.length || 0) > 0;
+          // Video Scenes: Check sents_data first (new), then fallbacks
+          case 'video_scene': return (data.video_sents?.sents_data?.length || data.video_sents?.video_sent?.length || (data.video_sents as any)?.sent?.length || 0) > 0;
           // Music: check sents_data first (new), then fallbacks
           case 'music': return (data.music_sents?.sents_data?.length || data.music_sents?.music_sent?.length || (data.music_sents as any)?.songs?.length || 0) > 0;
           case 'phrases': return (data.phrs?.phrs?.length || 0) > 0;
@@ -153,7 +152,6 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
           case 'exams': return (data.individual?.idiomatic?.length || 0) > 0;
           case 'web_trans': return (data.web_trans?.web_translation?.length || 0) > 0;
           case 'wiki': return (data.wikipedia_digest?.summarys?.length || 0) > 0;
-          case 'stats': return !!data.special && (!!data.special.summary || !!data.special.co_list);
           case 'discrim': return (data.discrim?.discrims?.length || 0) > 0;
           default: return false;
       }
@@ -288,18 +286,16 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                       </div>
                   )}
 
-                  {(hasData('exams') || hasData('web_trans') || hasData('wiki') || hasData('stats')) && (
+                  {(hasData('exams') || hasData('web_trans') || hasData('wiki')) && (
                       <div ref={el => {
                           if (hasData('exams')) sectionRefs.current['exams'] = el;
                           if (hasData('web_trans')) sectionRefs.current['web_trans'] = el;
                           if (hasData('wiki')) sectionRefs.current['wiki'] = el;
-                          if (hasData('stats')) sectionRefs.current['stats'] = el;
                       }}>
                           <WebSection 
                               individual={data.individual} 
                               webTrans={data.web_trans}
                               wiki={data.wikipedia_digest}
-                              special={data.special}
                           />
                       </div>
                   )}

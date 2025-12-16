@@ -14,8 +14,9 @@ interface MediaSectionProps {
 export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSents, musicSents }) => {
     const videos = wordVideos?.word_videos || [];
     
-    // Enhanced data extraction for real videos
-    const realVideos = videoSents?.video_sent || (videoSents as any)?.sent || [];
+    // Updated data extraction for real videos using sents_data (primary)
+    // Fallbacks to legacy fields if needed
+    const realVideos = videoSents?.sents_data || videoSents?.video_sent || (videoSents as any)?.sent || [];
     
     // Music data extraction strategy: prioritized sents_data
     const musicList: MusicSentItem[] = musicSents?.sents_data || musicSents?.music_sent || (musicSents as any)?.songs || [];
@@ -92,27 +93,49 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                         <h3 className="text-lg font-bold text-slate-800">实景视频</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {realVideos.map((v: any, idx: number) => (
-                            <div key={idx} className="bg-slate-50 rounded-xl overflow-hidden border border-slate-200">
-                                <a href={v.url} target="_blank" rel="noopener noreferrer" className="block relative aspect-video bg-slate-900 group">
-                                    {v.cover && <img src={v.cover} className="w-full h-full object-cover opacity-90 group-hover:opacity-75 transition" />}
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center group-hover:bg-white/30 transition">
-                                            <Volume2 className="w-5 h-5 text-white" />
+                        {realVideos.map((v: any, idx: number) => {
+                            // Unified data mapping
+                            const cover = v.video_cover || v.cover;
+                            const url = v.video || v.url;
+                            // Contributor/Source
+                            const source = v.contributor || v.source;
+                            // Subtitles can come from sents array (legacy) or subtitle_srt (new)
+                            const subtitles = v.sents || (v.subtitle_srt ? [{eng: v.subtitle_srt}] : []);
+
+                            return (
+                                <div key={idx} className="bg-slate-50 rounded-xl overflow-hidden border border-slate-200 flex flex-col">
+                                    <a href={url} target="_blank" rel="noopener noreferrer" className="block relative aspect-video bg-slate-900 group shrink-0">
+                                        {cover && <img src={cover} className="w-full h-full object-cover opacity-90 group-hover:opacity-75 transition" />}
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center group-hover:bg-white/30 transition">
+                                                <Volume2 className="w-5 h-5 text-white" />
+                                            </div>
                                         </div>
+                                    </a>
+                                    <div className="p-4 flex-1 flex flex-col">
+                                        <div className="space-y-2 mb-3 flex-1">
+                                            {subtitles.length > 0 ? (
+                                                subtitles.map((s: any, sIdx: number) => (
+                                                    <div key={sIdx} className="space-y-1">
+                                                        <p className="text-sm font-medium text-slate-800 line-clamp-3 leading-relaxed" title={s.eng}>
+                                                            {s.eng}
+                                                        </p>
+                                                        {s.chn && <p className="text-xs text-slate-500 line-clamp-1">{s.chn}</p>}
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-xs text-slate-400 italic">暂无字幕预览</p>
+                                            )}
+                                        </div>
+                                        {source && (
+                                            <div className="text-[10px] text-slate-400 text-right pt-2 border-t border-slate-100 truncate">
+                                                — {source}
+                                            </div>
+                                        )}
                                     </div>
-                                </a>
-                                <div className="p-4">
-                                    {v.sents?.map((s: any, sIdx: number) => (
-                                        <div key={sIdx} className="space-y-1">
-                                            <p className="text-sm font-medium text-slate-800 line-clamp-2" title={s.eng}>{s.eng}</p>
-                                            <p className="text-xs text-slate-500 line-clamp-1">{s.chn}</p>
-                                        </div>
-                                    ))}
-                                    {v.source && <div className="text-[10px] text-slate-400 mt-2 text-right">— {v.source}</div>}
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                     <SourceBadge source="video_sents" />
                 </div>

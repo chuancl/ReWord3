@@ -1,21 +1,19 @@
 
 import React from 'react';
-import { FileQuestion, Network, BookOpen, BarChart2 } from 'lucide-react';
-import { IndividualData, WebTransData, WikiDigestData, SpecialData } from '../../types/youdao';
+import { FileQuestion, Network, BookOpen } from 'lucide-react';
+import { IndividualData, WebTransData, WikiDigestData } from '../../types/youdao';
 import { SourceBadge } from './SourceBadge';
 
 interface WebSectionProps {
     individual?: IndividualData;
     webTrans?: WebTransData;
     wiki?: WikiDigestData;
-    special?: SpecialData;
 }
 
-export const WebSection: React.FC<WebSectionProps> = ({ individual, webTrans, wiki, special }) => {
+export const WebSection: React.FC<WebSectionProps> = ({ individual, webTrans, wiki }) => {
     const exams = individual?.idiomatic || [];
     const webTranslations = webTrans?.web_translation || [];
     const wikiSummaries = wiki?.summarys || [];
-    const stats = special;
 
     return (
         <div className="space-y-8">
@@ -99,50 +97,6 @@ export const WebSection: React.FC<WebSectionProps> = ({ individual, webTrans, wi
                         )}
                     </div>
                     <SourceBadge source="wikipedia_digest" />
-                </div>
-            )}
-
-            {/* Stats / Special */}
-            {(stats?.summary?.sources || stats?.co_list) && (
-                <div id="stats" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-                    <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
-                        <BarChart2 className="w-5 h-5 text-gray-600" />
-                        <h3 className="text-lg font-bold text-slate-800">词频与统计 (Statistics)</h3>
-                    </div>
-                    {stats?.summary?.sources && (
-                        <div className="mb-6">
-                            <h4 className="text-sm font-bold text-slate-600 mb-3">词频分布</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {Object.entries(stats.summary.sources).map(([key, val]: [string, any]) => (
-                                    <div key={key} className="px-3 py-2 bg-slate-50 rounded border border-slate-200 flex flex-col items-center min-w-[80px]">
-                                        <span className="text-xs text-slate-400 uppercase">{key}</span>
-                                        <span className="font-bold text-slate-800">{val?.hits || 0}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                    {stats?.co_list && (
-                        <div>
-                            <h4 className="text-sm font-bold text-slate-600 mb-3">搭配统计</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {stats.co_list.map((co, idx) => (
-                                    <div key={idx} className="bg-slate-50 p-3 rounded-lg">
-                                        <div className="text-xs font-bold text-slate-400 mb-2">{co.gene}</div>
-                                        <ul className="space-y-1">
-                                            {co.entries?.slice(0, 5).map((e, eIdx) => (
-                                                <li key={eIdx} className="flex justify-between text-sm">
-                                                    <span className="text-slate-600">{e.k}</span>
-                                                    <span className="text-slate-400">{e.v}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                    <SourceBadge source="special" />
                 </div>
             )}
         </div>

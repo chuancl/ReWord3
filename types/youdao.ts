@@ -109,8 +109,23 @@ export interface PicDictData { pic?: PicItem[]; }
 export interface WordVideoItem { video?: { title?: string; cover?: string; url?: string; }; }
 export interface WordVideoData { word_videos?: WordVideoItem[]; }
 
-export interface VideoSentItem { sents?: { eng?: string; chn?: string }[]; cover?: string; url?: string; source?: string; }
-export interface VideoSentsData { video_sent?: VideoSentItem[]; }
+export interface VideoSentItem { 
+    // Legacy fields
+    sents?: { eng?: string; chn?: string }[]; 
+    cover?: string; 
+    url?: string; 
+    source?: string;
+    
+    // New fields for sents_data
+    video_cover?: string;
+    video?: string;
+    subtitle_srt?: string;
+    contributor?: string;
+}
+export interface VideoSentsData { 
+    video_sent?: VideoSentItem[]; 
+    sents_data?: VideoSentItem[]; // Added sents_data support
+}
 
 // --- 9. Music (music_sents) ---
 export interface MusicSentItem { 
