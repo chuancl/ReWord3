@@ -18,8 +18,8 @@ export const RelationshipSection: React.FC<RelationshipSectionProps> = ({ phrs, 
     const discrims = discrim?.discrims || [];
     const roots = relWord?.rels || [];
     
-    // Correctly extract the first item from the zh or en array
-    const etymData = etym?.etyms?.zh?.[0] || etym?.etyms?.en?.[0];
+    // Get all etymology items (prefer zh, fallback to en)
+    const etymList = etym?.etyms?.zh || etym?.etyms?.en || [];
 
     return (
         <div className="space-y-8">
@@ -132,21 +132,20 @@ export const RelationshipSection: React.FC<RelationshipSectionProps> = ({ phrs, 
             )}
 
             {/* Etymology */}
-            {etymData && (
+            {etymList.length > 0 && (
                 <div id="etym" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                     <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                         <History className="w-5 h-5 text-amber-600" />
                         <h3 className="text-lg font-bold text-slate-800">词源典故 (Etymology)</h3>
                     </div>
-                    <div className="prose prose-sm prose-slate max-w-none bg-amber-50/50 p-6 rounded-xl border border-amber-100 text-slate-700 leading-relaxed font-serif">
-                        {/* Display Value (Title) */}
-                        {etymData.value && <p className="font-bold text-lg mb-2 text-amber-900">{etymData.value}</p>}
-                        
-                        {/* Display Description */}
-                        <p>{etymData.desc}</p>
-                        
-                        {/* Display Source */}
-                        {etymData.source && <p className="text-xs text-amber-500/60 mt-4 text-right">—— {etymData.source}</p>}
+                    <div className="space-y-6">
+                        {etymList.map((item, idx) => (
+                            <div key={idx} className="prose prose-sm prose-slate max-w-none bg-amber-50/50 p-6 rounded-xl border border-amber-100 text-slate-700 leading-relaxed font-serif">
+                                {item.value && <p className="font-bold text-lg mb-2 text-amber-900">{item.value}</p>}
+                                <p>{item.desc}</p>
+                                {item.source && <p className="text-xs text-amber-500/60 mt-4 text-right">—— {item.source}</p>}
+                            </div>
+                        ))}
                     </div>
                     <SourceBadge source="etym" />
                 </div>
