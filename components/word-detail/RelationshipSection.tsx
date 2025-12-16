@@ -30,7 +30,7 @@ export const RelationshipSection: React.FC<RelationshipSectionProps> = ({ phrs, 
                         <Layers className="w-5 h-5 text-green-600" />
                         <h3 className="text-lg font-bold text-slate-800">常用词组 (Phrases)</h3>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {phrases.slice(0, 30).map((item, idx) => {
                             // Extract Headword: phr.headword.l.i
                             const head = item.phr?.headword?.l?.i;
@@ -51,14 +51,19 @@ export const RelationshipSection: React.FC<RelationshipSectionProps> = ({ phrs, 
                                 }
                             });
                             
-                            const trans = transList.join('; ');
-
-                            if (!head || !trans) return null;
+                            if (!head || transList.length === 0) return null;
                             
                             return (
-                                <div key={idx} className="flex flex-col p-3 rounded-lg border border-slate-100 hover:border-green-200 hover:bg-green-50/30 transition group">
-                                    <span className="font-bold text-slate-700 group-hover:text-green-700 mb-1">{head}</span>
-                                    <span className="text-xs text-slate-500 line-clamp-2" title={trans}>{trans}</span>
+                                <div key={idx} className="relative p-4 rounded-xl border border-slate-100 hover:border-green-300 hover:shadow-sm hover:bg-green-50/20 transition-all group bg-slate-50/30">
+                                    <h4 className="font-bold text-slate-800 text-sm mb-2 group-hover:text-green-700 border-b border-slate-100 pb-2">{head}</h4>
+                                    <div className="space-y-1.5">
+                                        {transList.map((t, i) => (
+                                            <div key={i} className="text-xs text-slate-600 leading-relaxed flex items-start">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-green-300 mt-1.5 mr-2 shrink-0 group-hover:bg-green-500 transition-colors"></span>
+                                                <span>{t}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             );
                         })}
