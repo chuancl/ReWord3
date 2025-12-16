@@ -10,7 +10,7 @@ import { EeSection } from './word-detail/EeSection';
 import { MediaSection } from './word-detail/MediaSection';
 import { RelationshipSection } from './word-detail/RelationshipSection';
 import { SentenceSection } from './word-detail/SentenceSection';
-import { WebSection } from './word-detail/WebSection';
+import { WebTransSection, ExamsSection, WikiSection } from './word-detail/WebSection';
 
 interface WordDetailProps {
   word: string;
@@ -139,9 +139,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
           case 'collins_old': return (data.collins?.collins_entries?.length || 0) > 0;
           case 'ee': return (data.ee?.word?.trs?.length || 0) > 0;
           case 'video_lecture': return (data.word_video?.word_videos?.length || 0) > 0;
-          // Video Scenes: Check sents_data first (new), then fallbacks
           case 'video_scene': return (data.video_sents?.sents_data?.length || data.video_sents?.video_sent?.length || (data.video_sents as any)?.sent?.length || 0) > 0;
-          // Music: check sents_data first (new), then fallbacks
           case 'music': return (data.music_sents?.sents_data?.length || data.music_sents?.music_sent?.length || (data.music_sents as any)?.songs?.length || 0) > 0;
           case 'phrases': return (data.phrs?.phrs?.length || 0) > 0;
           case 'synonyms': return (data.syno?.synos?.length || 0) > 0;
@@ -150,7 +148,8 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
           case 'sentences': return (data.blng_sents_part?.["sentence-pair"]?.length || 0) > 0;
           case 'media_sents': return (data.media_sents_part?.sent?.length || 0) > 0;
           case 'exams': return (data.individual?.idiomatic?.length || 0) > 0;
-          case 'web_trans': return (data.web_trans?.["web-translation"]?.length || 0) > 0;
+          // Updated Check for WebTrans: Use both possible keys just in case
+          case 'web_trans': return (data.web_trans?.["web-translation"]?.length || (data.web_trans as any)?.["web_translation"]?.length || 0) > 0;
           case 'wiki': return (data.wikipedia_digest?.summarys?.length || 0) > 0;
           case 'discrim': return (data.discrim?.discrims?.length || 0) > 0;
           default: return false;
@@ -286,17 +285,22 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                       </div>
                   )}
 
-                  {(hasData('exams') || hasData('web_trans') || hasData('wiki')) && (
-                      <div ref={el => {
-                          if (hasData('exams')) sectionRefs.current['exams'] = el;
-                          if (hasData('web_trans')) sectionRefs.current['web_trans'] = el;
-                          if (hasData('wiki')) sectionRefs.current['wiki'] = el;
-                      }}>
-                          <WebSection 
-                              individual={data.individual} 
-                              webTrans={data.web_trans}
-                              wiki={data.wikipedia_digest}
-                          />
+                  {/* Separated Sections for Exams, WebTrans, Wiki */}
+                  {hasData('exams') && (
+                      <div id="exams" ref={el => sectionRefs.current['exams'] = el}>
+                          <ExamsSection individual={data.individual} />
+                      </div>
+                  )}
+
+                  {hasData('web_trans') && (
+                      <div id="web_trans" ref={el => sectionRefs.current['web_trans'] = el}>
+                          <WebTransSection webTrans={data.web_trans} />
+                      </div>
+                  )}
+
+                  {hasData('wiki') && (
+                      <div id="wiki" ref={el => sectionRefs.current['wiki'] = el}>
+                          <WikiSection wiki={data.wikipedia_digest} />
                       </div>
                   )}
 
