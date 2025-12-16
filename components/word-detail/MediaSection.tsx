@@ -43,25 +43,24 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
 
         if (activeVideo.subtitle_srt) {
             // Case 1: Raw SRT content available.
-            // We must NOT wrap this in another cue block. Instead, we convert it to VTT format.
-            
             // 1. Convert SRT timestamps (00:00:00,000) to VTT (00:00:00.000)
             let cleanSrt = activeVideo.subtitle_srt.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
             
-            // 2. Remove HTML-like tags (e.g. <font color=...>) to show only text
+            // 2. Remove HTML-like tags (e.g. <font>, <b> etc. if undesired) to ensure clean text
+            // Note: WebVTT supports some tags like <b>, but pure text is safer for basic display.
             cleanSrt = cleanSrt.replace(/<[^>]+>/g, '');
             
             vttContent += cleanSrt;
             hasContent = true;
         } else if (activeVideo.sents && activeVideo.sents.length > 0) {
             // Case 2: Bilingual sentences without timestamps.
-            // Create a single static caption block covering a default duration (e.g., 5 mins)
-            // so the text is always visible during the short clip.
+            // Create a single static caption block for the whole video
             const combinedText = activeVideo.sents.map((s: any) => 
                 `${s.eng || ''}\n${s.chn || ''}`
             ).join('\n\n');
             
-            vttContent += `1\n00:00.000 --> 05:00.000\n${combinedText}`;
+            // Show for 10 minutes to cover most short clips
+            vttContent += `1\n00:00.000 --> 10:00.000\n${combinedText}`;
             hasContent = true;
         }
 
@@ -162,8 +161,8 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                         </span>
                     </div>
 
-                    {/* 3D Stage */}
-                    <div className="relative w-full h-[400px] bg-slate-900 flex items-center justify-center overflow-hidden perspective-1000 group select-none">
+                    {/* 3D Stage - Increased Height to 520px for larger videos */}
+                    <div className="relative w-full h-[520px] bg-slate-900 flex items-center justify-center overflow-hidden perspective-1000 group select-none">
                         {/* Background Effect */}
                         <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-slate-800">
                             {activeVideo && (activeVideo.video_cover || activeVideo.cover) && (
@@ -180,7 +179,8 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                             if (absOffset > 2) return null;
 
                             const isActive = offset === 0;
-                            const xTranslate = offset * 60;
+                            // Use percentage based spacing for translateX
+                            const xTranslate = offset * 65; 
                             const scale = isActive ? 1 : 1 - (absOffset * 0.15);
                             const rotateY = offset > 0 ? -30 : (offset < 0 ? 30 : 0);
                             const zIndex = 20 - absOffset;
@@ -193,24 +193,20 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                 <div 
                                     key={idx}
                                     onClick={() => setActiveVideoIndex(idx)}
-                                    className={`absolute w-[300px] h-[170px] sm:w-[480px] sm:h-[270px] rounded-xl shadow-2xl transition-all duration-500 ease-out cursor-pointer
+                                    // Much Larger Dimensions
+                                    // Mobile: 90vw width, 16:9 aspect ratio
+                                    // Desktop: 750px width, 422px height
+                                    className={`absolute w-[90vw] aspect-video sm:w-[750px] sm:h-[422px] rounded-xl shadow-2xl transition-all duration-500 ease-out cursor-pointer
                                         ${isActive ? 'z-30 ring-1 ring-white/20' : 'z-10 hover:opacity-80'}`}
                                     style={{
-                                        transform: `translateX(${xTranslate}%) scale(${scale}) perspective(1000px) rotateY(${rotateY}deg)`,
+                                        // Use calc for centering: left 50% minus half width (via translateX -50%) plus offset
+                                        left: '50%',
+                                        transform: `translateX(calc(-50% + ${xTranslate}%)) scale(${scale}) perspective(1000px) rotateY(${rotateY}deg)`,
                                         zIndex: zIndex,
                                         opacity: opacity,
-                                        left: '50%',
-                                        marginLeft: '-150px', // -w/2 (mobile)
                                     }}
                                 >
-                                    {/* Responsive margin fix for desktop via inline styles override or media query logic in CSS is better, but here we approximate center */}
-                                    <style>{`
-                                        @media (min-width: 640px) {
-                                            .video-card-${idx} { margin-left: -240px !important; }
-                                        }
-                                    `}</style>
-                                    
-                                    <div className={`video-card-${idx} w-full h-full rounded-xl overflow-hidden bg-black relative border border-white/10 group/card`}>
+                                    <div className={`w-full h-full rounded-xl overflow-hidden bg-black relative border border-white/10 group/card`}>
                                         {isActive && isVideoPlaying ? (
                                             <video 
                                                 src={videoUrl} 
@@ -218,6 +214,8 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                                 autoPlay 
                                                 className="w-full h-full object-contain"
                                                 onEnded={() => setIsVideoPlaying(false)}
+                                                // Ensure controls like fullscreen are available
+                                                controlsList="nodownload" 
                                             >
                                                 {/* Use Native Subtitles Track */}
                                                 {subtitleTrackUrl && (
@@ -237,7 +235,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                                     <img src={cover} className="w-full h-full object-cover opacity-90" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-slate-800">
-                                                        <Tv className="w-12 h-12 text-slate-600" />
+                                                        <Tv className="w-16 h-16 text-slate-600" />
                                                     </div>
                                                 )}
                                                 
@@ -250,8 +248,8 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                                             stopAudio();
                                                         }}
                                                     >
-                                                        <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 transition-transform hover:scale-110">
-                                                            <PlayCircle className="w-8 h-8 text-white ml-0.5" />
+                                                        <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 transition-transform hover:scale-110">
+                                                            <PlayCircle className="w-12 h-12 text-white ml-1" />
                                                         </div>
                                                     </div>
                                                 )}
@@ -260,16 +258,16 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
 
                                         {/* --- Static Subtitle Preview (Only when NOT playing) --- */}
                                         {isActive && !isVideoPlaying && (
-                                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none">
+                                            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none">
                                                 <div className="text-center">
                                                     {v.sents && v.sents.length > 0 ? (
                                                         v.sents.map((s: any, idx: number) => (
-                                                            <div key={idx} className="mb-1 last:mb-0">
-                                                                <p className="text-white text-base md:text-lg font-bold leading-tight drop-shadow-md font-serif italic" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                                                            <div key={idx} className="mb-2 last:mb-0">
+                                                                <p className="text-white text-lg md:text-xl font-bold leading-tight drop-shadow-md font-serif italic" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
                                                                     "{s.eng}"
                                                                 </p>
                                                                 {s.chn && (
-                                                                    <p className="text-white/80 text-xs md:text-sm mt-1 font-medium drop-shadow-md">
+                                                                    <p className="text-white/80 text-sm md:text-base mt-1 font-medium drop-shadow-md">
                                                                         {s.chn}
                                                                     </p>
                                                                 )}
@@ -277,7 +275,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                                         ))
                                                     ) : v.subtitle_srt ? (
                                                         // Show cleaned preview (remove timestamps and tags for preview card too)
-                                                        <p className="text-white text-sm font-medium drop-shadow-md line-clamp-3">
+                                                        <p className="text-white text-base font-medium drop-shadow-md line-clamp-3 leading-relaxed">
                                                             {v.subtitle_srt.replace(/(\d{2}:\d{2}:\d{2},\d{3})|(\d+\s+)|(-->)/g, '').replace(/<[^>]+>/g, '')}
                                                         </p>
                                                     ) : null}
@@ -299,11 +297,11 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                         {/* Controls */}
                         {realVideos.length > 1 && (
                             <>
-                                <button onClick={handlePrevVideo} disabled={activeVideoIndex === 0} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 transition z-40 backdrop-blur-sm">
-                                    <ArrowLeft className="w-6 h-6" />
+                                <button onClick={handlePrevVideo} disabled={activeVideoIndex === 0} className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 transition z-40 backdrop-blur-sm">
+                                    <ArrowLeft className="w-8 h-8" />
                                 </button>
-                                <button onClick={handleNextVideo} disabled={activeVideoIndex === realVideos.length - 1} className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 transition z-40 backdrop-blur-sm">
-                                    <ArrowRight className="w-6 h-6" />
+                                <button onClick={handleNextVideo} disabled={activeVideoIndex === realVideos.length - 1} className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 transition z-40 backdrop-blur-sm">
+                                    <ArrowRight className="w-8 h-8" />
                                 </button>
                             </>
                         )}
