@@ -1,8 +1,7 @@
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { ArrowLeft, BookOpen, Star, Layers, Share2, Quote, GitBranch, Globe, Loader2, History, Split, Hash, Image as ImageIcon, Youtube, Music, Tv, FileQuestion, Network, Volume2, Briefcase, GripVertical, AudioLines, Lightbulb } from 'lucide-react';
+import { ArrowLeft, BookOpen, Star, Layers, Share2, Quote, GitBranch, Globe, Loader2, History, Split, Hash, Image as ImageIcon, Youtube, Music, Tv, FileQuestion, Network, Volume2, Briefcase, GripVertical } from 'lucide-react';
 import { YoudaoResponse } from '../types/youdao';
-import { IcibaExtendedResponse } from '../types/iciba';
 import { BasicInfo } from './word-detail/BasicInfo';
 import { ImageGallery } from './word-detail/ImageGallery';
 import { ExpandEcSection } from './word-detail/ExpandEcSection';
@@ -13,10 +12,8 @@ import { PhrasesSection, SynonymsSection, DiscrimSection, RootsSection, EtymSect
 import { BilingualSentencesSection, MediaSentencesSection } from './word-detail/SentenceSection';
 import { WebTransSection, ExamsSection, WikiSection } from './word-detail/WebSection';
 import { SpecialSection } from './word-detail/SpecialSection';
-import { PronunciationSection, MnemonicSection } from './word-detail/IcibaSections';
 import { interactionConfigStorage } from '../utils/storage';
 import { DEFAULT_WORD_INTERACTION } from '../constants';
-import { fetchIcibaExtended } from '../utils/iciba-api';
 
 interface WordDetailProps {
   word: string;
@@ -26,8 +23,6 @@ interface WordDetailProps {
 // --- Navigation Config (Default Order) ---
 const DEFAULT_SECTIONS = [
   { id: 'basic', label: '基础释义', icon: Hash },
-  { id: 'pronunciation', label: '发音技巧', icon: AudioLines }, // New
-  { id: 'mnemonic', label: '单词助记', icon: Lightbulb }, // New
   { id: 'images', label: '单词配图', icon: ImageIcon },
   { id: 'expand_ec', label: '扩展释义', icon: BookOpen },
   { id: 'special', label: '专业释义', icon: Briefcase },
@@ -51,7 +46,6 @@ const DEFAULT_SECTIONS = [
 
 export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
   const [data, setData] = useState<YoudaoResponse | null>(null);
-  const [icibaData, setIcibaData] = useState<IcibaExtendedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeSection, setActiveSection] = useState('basic');
@@ -93,25 +87,10 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
       setLoading(true);
       setError('');
       try {
-        // Parallel requests
-        const [youdaoRes, icibaRes] = await Promise.allSettled([
-            fetch(`https://dict.youdao.com/jsonapi?q=${encodeURIComponent(word)}`).then(r => {
-                if(!r.ok) throw new Error("Youdao API Failed");
-                return r.json();
-            }),
-            fetchIcibaExtended(word)
-        ]);
-
-        if (youdaoRes.status === 'fulfilled') {
-            setData(youdaoRes.value);
-        } else {
-            throw new Error('API request failed');
-        }
-
-        if (icibaRes.status === 'fulfilled') {
-            setIcibaData(icibaRes.value);
-        }
-
+        const res = await fetch(`https://dict.youdao.com/jsonapi?q=${encodeURIComponent(word)}`);
+        if (!res.ok) throw new Error('API request failed');
+        const json = await res.json();
+        setData(json);
       } catch (err) {
         console.error(err);
         setError('无法加载词典数据，请检查网络连接。');
@@ -133,9 +112,6 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
 
   // Helper to determine which sections have data
   const hasData = (id: string) => {
-      if (id === 'pronunciation') return !!(icibaData?.data?.aiSearchWordPronunciationVo?.pronunciation || icibaData?.data?.aiSearchWordPronunciationVo?.videoUrl);
-      if (id === 'mnemonic') return !!(icibaData?.data?.wordEtymaVo?.assist || icibaData?.data?.wordEtymaVo?.explosion);
-
       if (!data) return false;
       switch(id) {
           case 'basic': return !!data.ec;
@@ -165,40 +141,39 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
   // Only show sections that have data
   const activeSectionsList = useMemo(() => {
       return navItems.filter(s => hasData(s.id));
-  }, [navItems, data, icibaData]);
+  }, [navItems, data]);
 
   // Render Mapping Logic
   const renderSectionContent = (id: string) => {
+      if (!data) return null;
       switch(id) {
-          case 'basic': return data ? <BasicInfo word={word} ec={data.ec} /> : null;
-          case 'pronunciation': return <PronunciationSection data={icibaData?.data} />;
-          case 'mnemonic': return <MnemonicSection data={icibaData?.data} />;
-          case 'images': return data ? <ImageGallery word={word} picDict={data.pic_dict} /> : null;
-          case 'expand_ec': return data ? <ExpandEcSection expandEc={data.expand_ec} /> : null;
-          case 'special': return data ? <SpecialSection special={data.special} /> : null;
-          case 'collins_primary': return data ? <CollinsPrimarySection collinsPrimary={data.collins_primary} oldStar={data.collins?.collins_entries?.[0]?.star} /> : null;
-          case 'collins_old': return data ? <CollinsOldSection collinsOld={data.collins} word={word} /> : null;
-          case 'ee': return data ? <EeSection ee={data.ee} /> : null;
-          case 'video_lecture': return data ? <VideoLectureSection wordVideos={data.word_video} /> : null;
-          case 'video_scene': return data ? <VideoSceneSection videoSents={data.video_sents} /> : null;
-          case 'music': return data ? <MusicSection musicSents={data.music_sents} /> : null;
-          case 'phrases': return data ? <PhrasesSection phrs={data.phrs} /> : null;
-          case 'synonyms': return data ? <SynonymsSection syno={data.syno} /> : null;
-          case 'discrim': return data ? <DiscrimSection discrim={data.discrim} /> : null;
-          case 'roots': return data ? <RootsSection relWord={data.rel_word} /> : null;
-          case 'etym': return data ? <EtymSection etym={data.etym} /> : null;
-          case 'sentences': return data ? <BilingualSentencesSection bilingual={data.blng_sents_part} /> : null;
-          case 'media_sents': return data ? <MediaSentencesSection media={data.media_sents_part} /> : null;
-          case 'exams': return data ? <ExamsSection individual={data.individual} /> : null;
-          case 'web_trans': return data ? <WebTransSection webTrans={data.web_trans} /> : null;
-          case 'wiki': return data ? <WikiSection wiki={data.wikipedia_digest} /> : null;
+          case 'basic': return <BasicInfo word={word} ec={data.ec} />;
+          case 'images': return <ImageGallery word={word} picDict={data.pic_dict} />;
+          case 'expand_ec': return <ExpandEcSection expandEc={data.expand_ec} />;
+          case 'special': return <SpecialSection special={data.special} />;
+          case 'collins_primary': return <CollinsPrimarySection collinsPrimary={data.collins_primary} oldStar={data.collins?.collins_entries?.[0]?.star} />;
+          case 'collins_old': return <CollinsOldSection collinsOld={data.collins} word={word} />;
+          case 'ee': return <EeSection ee={data.ee} />;
+          case 'video_lecture': return <VideoLectureSection wordVideos={data.word_video} />;
+          case 'video_scene': return <VideoSceneSection videoSents={data.video_sents} />;
+          case 'music': return <MusicSection musicSents={data.music_sents} />;
+          case 'phrases': return <PhrasesSection phrs={data.phrs} />;
+          case 'synonyms': return <SynonymsSection syno={data.syno} />;
+          case 'discrim': return <DiscrimSection discrim={data.discrim} />;
+          case 'roots': return <RootsSection relWord={data.rel_word} />;
+          case 'etym': return <EtymSection etym={data.etym} />;
+          case 'sentences': return <BilingualSentencesSection bilingual={data.blng_sents_part} />;
+          case 'media_sents': return <MediaSentencesSection media={data.media_sents_part} />;
+          case 'exams': return <ExamsSection individual={data.individual} />;
+          case 'web_trans': return <WebTransSection webTrans={data.web_trans} />;
+          case 'wiki': return <WikiSection wiki={data.wikipedia_digest} />;
           default: return null;
       }
   };
 
   // Scroll Spy Logic - Adjusted to find elements by ID directly
   useEffect(() => {
-    if (loading) return;
+    if (loading || !data) return;
     if (observer.current) observer.current.disconnect();
 
     const options = {
@@ -222,7 +197,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
     });
 
     return () => observer.current?.disconnect();
-  }, [loading, activeSectionsList]);
+  }, [data, loading, activeSectionsList]);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -341,7 +316,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                   ))}
 
                   <div className="text-center py-8 text-slate-400 text-xs">
-                      © ContextLingo - Data Sources: Youdao, Collins, Wikipedia, Iciba
+                      © ContextLingo - Data Sources: Youdao, Collins, Wikipedia
                   </div>
               </div>
           </div>
