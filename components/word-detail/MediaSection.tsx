@@ -20,7 +20,11 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
     // Music data extraction strategy
     const musicList: MusicSentItem[] = musicSents?.sents_data || musicSents?.music_sent || (musicSents as any)?.songs || [];
 
-    // --- Video Carousel State ---
+    // --- Video Lecture State ---
+    const [activeLectureIndex, setActiveLectureIndex] = useState(0);
+    const [isLecturePlaying, setIsLecturePlaying] = useState(false);
+
+    // --- Real Video Carousel State ---
     const [activeVideoIndex, setActiveVideoIndex] = useState(0);
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
     const [subtitleTrackUrl, setSubtitleTrackUrl] = useState<string | null>(null);
@@ -30,8 +34,9 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
     const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
     const activeVideo = realVideos[activeVideoIndex];
+    const activeLecture = videos[activeLectureIndex];
 
-    // Generate VTT for active video
+    // Generate VTT for active Real Scene video
     useEffect(() => {
         if (!activeVideo) {
             setSubtitleTrackUrl(null);
@@ -47,7 +52,6 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
             let cleanSrt = activeVideo.subtitle_srt.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
             
             // 2. Remove HTML-like tags (e.g. <font>, <b> etc. if undesired) to ensure clean text
-            // Note: WebVTT supports some tags like <b>, but pure text is safer for basic display.
             cleanSrt = cleanSrt.replace(/<[^>]+>/g, '');
             
             vttContent += cleanSrt;
@@ -74,7 +78,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
         }
     }, [activeVideo]);
 
-    // Stop audio when switching items
+    // Reset playing states when switching items
     useEffect(() => {
         stopAudio();
         setIsMusicPlaying(false);
@@ -84,6 +88,11 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
         stopAudio();
         setIsVideoPlaying(false);
     }, [activeVideoIndex]);
+
+    useEffect(() => {
+        stopAudio();
+        setIsLecturePlaying(false);
+    }, [activeLectureIndex]);
 
     // --- Music Handlers ---
     const handlePrevMusic = (e?: React.MouseEvent) => {
@@ -111,7 +120,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
         }
     };
 
-    // --- Video Handlers ---
+    // --- Real Video Handlers ---
     const handlePrevVideo = (e?: React.MouseEvent) => {
         e?.stopPropagation();
         setActiveVideoIndex(prev => Math.max(0, prev - 1));
@@ -122,29 +131,137 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
         setActiveVideoIndex(prev => Math.min(realVideos.length - 1, prev + 1));
     };
 
+    // --- Lecture Video Handlers ---
+    const handlePrevLecture = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        setActiveLectureIndex(prev => Math.max(0, prev - 1));
+    };
+
+    const handleNextLecture = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        setActiveLectureIndex(prev => Math.min(videos.length - 1, prev + 1));
+    };
+
     const activeMusic = musicList[activeMusicIndex];
 
     return (
         <div className="space-y-8">
-            {/* Video Lectures */}
+            {/* Video Lectures (3D Carousel) */}
             {videos.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-                    <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="flex items-center gap-2 px-8 py-5 border-b border-slate-100 bg-red-50/30">
                         <Youtube className="w-5 h-5 text-red-600" />
                         <h3 className="text-lg font-bold text-slate-800">视频讲解</h3>
+                        <span className="text-xs text-red-500 font-medium bg-red-50 px-2 py-0.5 rounded-full ml-auto">
+                            {activeLectureIndex + 1} / {videos.length}
+                        </span>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {videos.map((v, idx) => (
-                            <a key={idx} href={v.video?.url} target="_blank" rel="noopener noreferrer" className="group block relative rounded-xl overflow-hidden aspect-video bg-slate-900 border border-slate-200 shadow-sm hover:shadow-md transition">
-                                {v.video?.cover && <img src={v.video.cover} className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition" alt={v.video?.title} />}
-                                <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-                                    <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-lg mb-2 group-hover:scale-110 transition-transform">
-                                        <Youtube className="w-6 h-6 text-white fill-white" />
+                    
+                    {/* 3D Stage */}
+                    <div className="relative w-full h-[520px] bg-slate-900 flex items-center justify-center overflow-hidden perspective-1000 group select-none">
+                        {/* Background Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-slate-800">
+                            {activeLecture?.video?.cover && (
+                                <img 
+                                    src={activeLecture.video.cover} 
+                                    className="w-full h-full object-cover opacity-10 blur-xl scale-110" 
+                                />
+                            )}
+                        </div>
+
+                        {videos.map((v, idx) => {
+                            const offset = idx - activeLectureIndex;
+                            const absOffset = Math.abs(offset);
+                            if (absOffset > 2) return null;
+
+                            const isActive = offset === 0;
+                            const xTranslate = offset * 65; 
+                            const scale = isActive ? 1 : 1 - (absOffset * 0.15);
+                            const rotateY = offset > 0 ? -30 : (offset < 0 ? 30 : 0);
+                            const zIndex = 20 - absOffset;
+                            const opacity = isActive ? 1 : 0.5;
+
+                            const cover = v.video?.cover;
+                            const videoUrl = v.video?.url;
+                            const title = v.video?.title;
+
+                            return (
+                                <div 
+                                    key={idx}
+                                    onClick={() => setActiveLectureIndex(idx)}
+                                    className={`absolute w-[90vw] aspect-video sm:w-[750px] sm:h-[422px] rounded-xl shadow-2xl transition-all duration-500 ease-out cursor-pointer
+                                        ${isActive ? 'z-30 ring-1 ring-white/20' : 'z-10 hover:opacity-80'}`}
+                                    style={{
+                                        left: '50%',
+                                        transform: `translateX(calc(-50% + ${xTranslate}%)) scale(${scale}) perspective(1000px) rotateY(${rotateY}deg)`,
+                                        zIndex: zIndex,
+                                        opacity: opacity,
+                                    }}
+                                >
+                                    <div className={`w-full h-full rounded-xl overflow-hidden bg-black relative border border-white/10 group/card`}>
+                                        {isActive && isLecturePlaying ? (
+                                            <video 
+                                                src={videoUrl} 
+                                                controls 
+                                                autoPlay 
+                                                className="w-full h-full object-contain"
+                                                onEnded={() => setIsLecturePlaying(false)}
+                                                controlsList="nodownload" 
+                                            />
+                                        ) : (
+                                            <>
+                                                {cover ? (
+                                                    <img src={cover} className="w-full h-full object-cover opacity-90" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                                                        <Youtube className="w-16 h-16 text-slate-600" />
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Title Overlay (Before Play) */}
+                                                <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/80 to-transparent">
+                                                    <h4 className="text-white font-bold text-lg md:text-xl drop-shadow-md line-clamp-2">{title}</h4>
+                                                </div>
+
+                                                {isActive && (
+                                                    <div 
+                                                        className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/40 transition group/play"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setIsLecturePlaying(true);
+                                                            stopAudio();
+                                                        }}
+                                                    >
+                                                        <div className="w-20 h-20 rounded-full bg-red-600/90 backdrop-blur-md flex items-center justify-center border border-white/20 transition-transform hover:scale-110 shadow-xl">
+                                                            <PlayCircle className="w-10 h-10 text-white fill-white ml-1" />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
-                                    <p className="text-white font-bold text-center text-sm line-clamp-2 drop-shadow-md px-2">{v.video?.title}</p>
+                                    
+                                    {/* Reflection */}
+                                    {isActive && !isLecturePlaying && (
+                                        <div className="absolute -bottom-8 left-0 right-0 h-8 bg-gradient-to-b from-white/10 to-transparent blur-sm transform scale-y-[-1] opacity-40 mask-image-gradient">
+                                            {cover && <img src={cover} className="w-full h-full object-cover" />}
+                                        </div>
+                                    )}
                                 </div>
-                            </a>
-                        ))}
+                            );
+                        })}
+
+                        {/* Controls */}
+                        {videos.length > 1 && (
+                            <>
+                                <button onClick={handlePrevLecture} disabled={activeLectureIndex === 0} className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 transition z-40 backdrop-blur-sm">
+                                    <ArrowLeft className="w-8 h-8" />
+                                </button>
+                                <button onClick={handleNextLecture} disabled={activeLectureIndex === videos.length - 1} className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 transition z-40 backdrop-blur-sm">
+                                    <ArrowRight className="w-8 h-8" />
+                                </button>
+                            </>
+                        )}
                     </div>
                     <SourceBadge source="word_video" />
                 </div>
