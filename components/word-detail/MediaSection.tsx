@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Youtube, Tv, Music, Volume2, ExternalLink, PlayCircle, Disc, Mic2, PauseCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Youtube, Tv, Music, Volume2, ExternalLink, PlayCircle, Disc, Mic2, PauseCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { WordVideoData, VideoSentsData, MusicSentsData, MusicSentItem } from '../../types/youdao';
 import { SourceBadge } from './SourceBadge';
 import { playUrl, stopAudio } from '../../utils/audio';
@@ -20,26 +20,43 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
     // Music data extraction strategy: prioritized sents_data
     const musicList: MusicSentItem[] = musicSents?.sents_data || musicSents?.music_sent || (musicSents as any)?.songs || [];
 
-    // Local state to track which music item is currently "active" in UI
-    const [playingMusicIndex, setPlayingMusicIndex] = useState<number | null>(null);
+    // --- Music Carousel State ---
+    const [activeMusicIndex, setActiveMusicIndex] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(false);
 
-    const handlePlayMusic = async (url: string, index: number) => {
-        if (playingMusicIndex === index) {
-            // Toggle off (Stop)
+    // Stop audio when switching songs
+    useEffect(() => {
+        stopAudio();
+        setIsPlaying(false);
+    }, [activeMusicIndex]);
+
+    const handlePrevMusic = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        setActiveMusicIndex(prev => Math.max(0, prev - 1));
+    };
+
+    const handleNextMusic = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        setActiveMusicIndex(prev => Math.min(musicList.length - 1, prev + 1));
+    };
+
+    const handlePlayToggle = async (url: string) => {
+        if (isPlaying) {
             stopAudio();
-            setPlayingMusicIndex(null);
+            setIsPlaying(false);
         } else {
-            // Play new
-            setPlayingMusicIndex(index);
+            setIsPlaying(true);
             try {
-                // playUrl internally calls stopAudio() to ensure exclusivity
                 await playUrl(url);
-                setPlayingMusicIndex(null); // Reset icon when done
+                setIsPlaying(false); // Auto reset when done
             } catch (e) {
-                setPlayingMusicIndex(null);
+                setIsPlaying(false);
             }
         }
     };
+
+    // Get current active music item
+    const activeMusic = musicList[activeMusicIndex];
 
     return (
         <div className="space-y-8">
@@ -101,120 +118,195 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                 </div>
             )}
 
-            {/* Music */}
+            {/* Music 3D Carousel */}
             {musicList.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-                    <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    {/* Header */}
+                    <div className="flex items-center gap-2 px-8 py-5 border-b border-slate-100 bg-pink-50/30">
                         <Music className="w-5 h-5 text-pink-500" />
                         <h3 className="text-lg font-bold text-slate-800">原声歌曲</h3>
+                        <span className="text-xs text-pink-400 font-medium bg-pink-50 px-2 py-0.5 rounded-full ml-auto">
+                            {activeMusicIndex + 1} / {musicList.length}
+                        </span>
                     </div>
-                    <div className="space-y-4">
+
+                    {/* 3D Stage Area */}
+                    <div className="relative w-full h-[320px] bg-slate-900 flex items-center justify-center overflow-hidden perspective-1000 group select-none">
+                        
+                        {/* Background Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-slate-800/90">
+                            {activeMusic.coverImg || activeMusic.cover ? (
+                                <img 
+                                    src={activeMusic.coverImg || activeMusic.cover} 
+                                    className="w-full h-full object-cover opacity-20 blur-2xl scale-110" 
+                                    alt="Background"
+                                />
+                            ) : null}
+                        </div>
+
                         {musicList.map((m, idx) => {
-                            // Unified field mapping based on user specs and fallbacks
-                            const title = m.songName || m.song_name || 'Unknown Song';
-                            const artist = m.singer || 'Unknown Artist';
+                            const offset = idx - activeMusicIndex;
+                            const absOffset = Math.abs(offset);
+                            
+                            // Visibility Optimization
+                            if (absOffset > 2) return null;
+
+                            // 3D Transform
+                            const isActive = offset === 0;
+                            const xTranslate = offset * 60; // Distance between items
+                            const scale = isActive ? 1 : 1 - (absOffset * 0.2);
+                            const rotateY = offset > 0 ? -45 : (offset < 0 ? 45 : 0);
+                            const zIndex = 20 - absOffset;
+                            const opacity = isActive ? 1 : 0.6;
+
                             const cover = m.coverImg || m.cover;
-                            const playLink = m.playUrl || m.url; // Snippet
-                            const fullLink = m.link || m.url;    // Full
-                            const lyricHtml = m.lyric || '';
-                            const lyricTrans = m.lyricTranslation || '';
-                            const legacySents = m.sents;
+                            const title = m.songName || m.song_name || 'Unknown Song';
 
                             return (
-                                <div key={idx} className="flex flex-col sm:flex-row gap-5 bg-pink-50/20 p-5 rounded-2xl border border-pink-100 hover:border-pink-200 transition-all group">
-                                    {/* Left: Album Art & Controls */}
-                                    <div className="flex sm:flex-col items-center gap-4 shrink-0 sm:w-24">
-                                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden shadow-md border border-pink-100 bg-white">
-                                            {cover ? (
-                                                <img src={cover} className="w-full h-full object-cover" alt={title} />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-pink-50">
-                                                    <Disc className="w-8 h-8 text-pink-300" />
-                                                </div>
-                                            )}
-                                            {/* Overlay Play Status */}
-                                            {playingMusicIndex === idx && (
-                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
-                                                    <div className="w-3 h-3 bg-pink-500 rounded-full animate-ping"></div>
-                                                </div>
-                                            )}
-                                        </div>
-                                        
-                                        <div className="flex gap-2">
-                                            {playLink && (
-                                                <button 
-                                                    onClick={() => handlePlayMusic(playLink, idx)}
-                                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                                                        playingMusicIndex === idx 
-                                                        ? 'bg-pink-500 text-white shadow-lg shadow-pink-200 scale-110' 
-                                                        : 'bg-white text-pink-500 border border-pink-200 hover:bg-pink-50'
-                                                    }`}
-                                                    title={playingMusicIndex === idx ? "Pause" : "Play Snippet"}
-                                                >
-                                                    {playingMusicIndex === idx ? <PauseCircle className="w-5 h-5"/> : <PlayCircle className="w-5 h-5"/>}
-                                                </button>
-                                            )}
-                                            {fullLink && (
-                                                <a 
-                                                    href={fullLink} 
-                                                    target="_blank" 
-                                                    rel="noreferrer" 
-                                                    className="w-8 h-8 rounded-full flex items-center justify-center bg-white text-slate-400 border border-slate-200 hover:text-pink-500 hover:border-pink-200 transition-colors"
-                                                    title="完整版链接"
-                                                >
-                                                    <ExternalLink className="w-4 h-4" />
-                                                </a>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Right: Info & Lyrics */}
-                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                        <div className="mb-3">
-                                            <h4 className="text-base font-bold text-slate-800 leading-tight">{title}</h4>
-                                            <div className="flex items-center text-xs text-slate-500 mt-1">
-                                                <Mic2 className="w-3 h-3 mr-1 text-pink-400"/>
-                                                <span>{artist}</span>
+                                <div 
+                                    key={idx}
+                                    onClick={() => setActiveMusicIndex(idx)}
+                                    className={`absolute w-48 h-48 sm:w-56 sm:h-56 rounded-xl shadow-2xl transition-all duration-500 ease-out cursor-pointer
+                                        ${isActive ? 'z-30 ring-1 ring-white/20' : 'z-10 hover:opacity-80'}`}
+                                    style={{
+                                        transform: `translateX(${xTranslate}%) scale(${scale}) perspective(1000px) rotateY(${rotateY}deg)`,
+                                        zIndex: zIndex,
+                                        opacity: opacity,
+                                        left: '50%',
+                                        marginLeft: '-7rem', // -w/2 (mobile)
+                                        // Media query handling via JS logic is tricky here, rely on centering via left 50%
+                                    }}
+                                >
+                                    <div className={`w-full h-full rounded-xl overflow-hidden bg-slate-800 relative border border-white/10 ${isActive && isPlaying ? 'animate-pulse-slow' : ''}`}>
+                                        {cover ? (
+                                            <img src={cover} className="w-full h-full object-cover" alt={title} />
+                                        ) : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-rose-600">
+                                                <Disc className="w-12 h-12 text-white/50" />
                                             </div>
-                                        </div>
+                                        )}
+                                        
+                                        {/* Vinyl/CD Shine Effect */}
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none"></div>
 
-                                        {/* Lyrics Area */}
-                                        <div className="bg-white rounded-xl border border-pink-50 p-4 shadow-sm relative overflow-hidden">
-                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-pink-400 opacity-50"></div>
-                                            
-                                            {/* Primary Lyric (HTML support for highlights) */}
-                                            {(lyricHtml || legacySents) ? (
-                                                <div className="space-y-3">
-                                                    {lyricHtml ? (
-                                                        <div 
-                                                            className="font-serif text-slate-700 text-base leading-relaxed"
-                                                            dangerouslySetInnerHTML={{ __html: lyricHtml }} 
-                                                        />
+                                        {/* Active Play Overlay */}
+                                        {isActive && (
+                                            <div 
+                                                className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/40 transition group/play"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handlePlayToggle(m.playUrl || m.url || '');
+                                                }}
+                                            >
+                                                <div className={`w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 transition-transform ${isPlaying ? 'scale-100' : 'scale-90 group-hover/play:scale-110'}`}>
+                                                    {isPlaying ? (
+                                                        <PauseCircle className="w-6 h-6 text-white" />
                                                     ) : (
-                                                        legacySents?.map((s: any, sIdx: number) => (
-                                                            <p key={sIdx} className="font-serif text-slate-700 text-base leading-relaxed">
-                                                                "{s.eng}"
-                                                            </p>
-                                                        ))
-                                                    )}
-                                                    
-                                                    {/* Translation */}
-                                                    {(lyricTrans || (legacySents && legacySents[0]?.chn)) && (
-                                                        <div className="pt-2 border-t border-slate-50 mt-1">
-                                                            <p className="text-sm text-slate-500">
-                                                                {lyricTrans || legacySents?.[0]?.chn}
-                                                            </p>
-                                                        </div>
+                                                        <PlayCircle className="w-6 h-6 text-white ml-0.5" />
                                                     )}
                                                 </div>
-                                            ) : (
-                                                <div className="text-xs text-slate-400 italic">暂无歌词预览</div>
-                                            )}
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
+                                    
+                                    {/* Reflection */}
+                                    {isActive && (
+                                        <div className="absolute -bottom-8 left-0 right-0 h-8 bg-gradient-to-b from-white/10 to-transparent blur-sm transform scale-y-[-1] opacity-40 mask-image-gradient">
+                                            {cover && <img src={cover} className="w-full h-full object-cover" />}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
+
+                        {/* Navigation Arrows */}
+                        {musicList.length > 1 && (
+                            <>
+                                <button 
+                                    onClick={handlePrevMusic}
+                                    disabled={activeMusicIndex === 0}
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 disabled:cursor-not-allowed transition z-40 backdrop-blur-sm"
+                                >
+                                    <ArrowLeft className="w-6 h-6" />
+                                </button>
+                                <button 
+                                    onClick={handleNextMusic}
+                                    disabled={activeMusicIndex === musicList.length - 1}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 disabled:cursor-not-allowed transition z-40 backdrop-blur-sm"
+                                >
+                                    <ArrowRight className="w-6 h-6" />
+                                </button>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Info Panel */}
+                    <div className="bg-white p-6 md:p-8 min-h-[200px]">
+                        {activeMusic ? (
+                            <div className="max-w-3xl mx-auto text-center space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-300" key={activeMusicIndex}>
+                                <div>
+                                    <h4 className="text-xl font-bold text-slate-900 mb-1">
+                                        {activeMusic.songName || activeMusic.song_name || 'Unknown Song'}
+                                    </h4>
+                                    <div className="flex items-center justify-center text-sm text-pink-600 font-medium">
+                                        <Mic2 className="w-3.5 h-3.5 mr-1.5" />
+                                        {activeMusic.singer || 'Unknown Artist'}
+                                    </div>
+                                </div>
+
+                                {/* Lyrics Box */}
+                                <div className="relative bg-slate-50 rounded-xl p-6 border border-slate-100 shadow-inner">
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 py-1 rounded-full border border-slate-100 shadow-sm text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        Lyrics Preview
+                                    </div>
+                                    
+                                    {(activeMusic.lyric || activeMusic.sents) ? (
+                                        <div className="space-y-4 max-h-40 overflow-y-auto custom-scrollbar">
+                                            {activeMusic.lyric ? (
+                                                <div 
+                                                    className="font-serif text-slate-700 text-lg leading-relaxed"
+                                                    dangerouslySetInnerHTML={{ __html: activeMusic.lyric }} 
+                                                />
+                                            ) : (
+                                                activeMusic.sents?.map((s: any, sIdx: number) => (
+                                                    <p key={sIdx} className="font-serif text-slate-700 text-lg leading-relaxed">
+                                                        "{s.eng}"
+                                                    </p>
+                                                ))
+                                            )}
+                                            
+                                            {/* Translation */}
+                                            {(activeMusic.lyricTranslation || (activeMusic.sents && activeMusic.sents[0]?.chn)) && (
+                                                <div className="pt-3 border-t border-slate-200/60 mt-2">
+                                                    <p className="text-sm text-slate-500 font-medium">
+                                                        {activeMusic.lyricTranslation || activeMusic.sents?.[0]?.chn}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="text-slate-400 italic text-sm py-4">暂无歌词预览</div>
+                                    )}
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex justify-center gap-4 pt-2">
+                                    {(activeMusic.link || activeMusic.url) && (
+                                        <a 
+                                            href={activeMusic.link || activeMusic.url} 
+                                            target="_blank" 
+                                            rel="noreferrer" 
+                                            className="inline-flex items-center px-4 py-2 bg-pink-50 text-pink-600 rounded-full text-sm font-bold hover:bg-pink-100 transition"
+                                        >
+                                            <ExternalLink className="w-4 h-4 mr-2" />
+                                            在音乐平台收听完整版
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center text-slate-400 py-10">请选择一首歌曲</div>
+                        )}
                     </div>
                     <SourceBadge source="music_sents" />
                 </div>
