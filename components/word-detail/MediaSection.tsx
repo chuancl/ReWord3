@@ -35,6 +35,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
     }, [activeMusicIndex]);
 
     useEffect(() => {
+        stopAudio();
         setIsVideoPlaying(false);
     }, [activeVideoIndex]);
 
@@ -188,6 +189,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setIsVideoPlaying(true);
+                                                            stopAudio();
                                                         }}
                                                     >
                                                         <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 transition-transform hover:scale-110">
