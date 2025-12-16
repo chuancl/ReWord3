@@ -1,6 +1,6 @@
 
-import React, { useEffect, useState, useRef } from 'react';
-import { ArrowLeft, BookOpen, Star, Layers, Share2, Quote, GitBranch, Globe, Loader2, History, Split, Hash, Image as ImageIcon, Youtube, Music, Tv, FileQuestion, Network, Volume2, Briefcase } from 'lucide-react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { ArrowLeft, BookOpen, Star, Layers, Share2, Quote, GitBranch, Globe, Loader2, History, Split, Hash, Image as ImageIcon, Youtube, Music, Tv, FileQuestion, Network, Volume2, Briefcase, GripVertical } from 'lucide-react';
 import { YoudaoResponse } from '../types/youdao';
 import { BasicInfo } from './word-detail/BasicInfo';
 import { ImageGallery } from './word-detail/ImageGallery';
@@ -18,12 +18,12 @@ interface WordDetailProps {
   onBack: () => void;
 }
 
-// --- Navigation Config ---
-const SECTIONS = [
+// --- Navigation Config (Default Order) ---
+const DEFAULT_SECTIONS = [
   { id: 'basic', label: '基础释义', icon: Hash },
   { id: 'images', label: '单词配图', icon: ImageIcon },
   { id: 'expand_ec', label: '扩展释义', icon: BookOpen },
-  { id: 'special', label: '专业释义', icon: Briefcase }, // Added Special
+  { id: 'special', label: '专业释义', icon: Briefcase },
   { id: 'collins_primary', label: '柯林斯 (新)', icon: Star },
   { id: 'collins_old', label: '柯林斯 (旧)', icon: Star },
   { id: 'ee', label: '英英释义', icon: Globe },
@@ -47,10 +47,31 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeSection, setActiveSection] = useState('basic');
+  
+  // Navigation Order State
+  const [navItems, setNavItems] = useState(DEFAULT_SECTIONS);
+  const [draggedNavIndex, setDraggedNavIndex] = useState<number | null>(null);
 
-  // Refs for scrolling
-  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  // Intersection Observer
   const observer = useRef<IntersectionObserver | null>(null);
+
+  // Load Nav Order from Storage
+  useEffect(() => {
+      const savedOrder = localStorage.getItem('context-lingo-nav-order');
+      if (savedOrder) {
+          try {
+              const orderIds = JSON.parse(savedOrder) as string[];
+              // Reorder DEFAULT_SECTIONS based on saved IDs, appending any new sections at the end
+              const reordered = [
+                  ...orderIds.map(id => DEFAULT_SECTIONS.find(s => s.id === id)).filter(Boolean),
+                  ...DEFAULT_SECTIONS.filter(s => !orderIds.includes(s.id))
+              ] as typeof DEFAULT_SECTIONS;
+              setNavItems(reordered);
+          } catch (e) {
+              console.error("Failed to load nav order", e);
+          }
+      }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -72,14 +93,47 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
     if (word) fetchData();
   }, [word]);
 
-  // Scroll Spy Logic
+  // Helper to determine which sections have data
+  const hasData = (id: string) => {
+      if (!data) return false;
+      switch(id) {
+          case 'basic': return !!data.ec;
+          case 'images': return (data.pic_dict?.pic?.length || 0) > 0;
+          case 'expand_ec': return (data.expand_ec?.word?.length || 0) > 0;
+          case 'special': return (data.special?.entries?.length || 0) > 0;
+          case 'collins_primary': return (data.collins_primary?.gramcat?.length || 0) > 0;
+          case 'collins_old': return (data.collins?.collins_entries?.length || 0) > 0;
+          case 'ee': return (data.ee?.word?.trs?.length || 0) > 0;
+          case 'video_lecture': return (data.word_video?.word_videos?.length || 0) > 0;
+          case 'video_scene': return (data.video_sents?.sents_data?.length || data.video_sents?.video_sent?.length || (data.video_sents as any)?.sent?.length || 0) > 0;
+          case 'music': return (data.music_sents?.sents_data?.length || data.music_sents?.music_sent?.length || (data.music_sents as any)?.songs?.length || 0) > 0;
+          case 'phrases': return (data.phrs?.phrs?.length || 0) > 0;
+          case 'synonyms': return (data.syno?.synos?.length || 0) > 0;
+          case 'roots': return (data.rel_word?.rels?.length || 0) > 0;
+          case 'etym': return !!(data.etym?.etyms?.zh || data.etym?.etyms?.en);
+          case 'sentences': return (data.blng_sents_part?.["sentence-pair"]?.length || 0) > 0;
+          case 'media_sents': return (data.media_sents_part?.sent?.length || 0) > 0;
+          case 'exams': return !!(data.individual?.examInfo?.questionTypeInfo?.length || data.individual?.pastExamSents?.length || data.individual?.idiomatic?.length);
+          case 'web_trans': return (data.web_trans?.["web-translation"]?.length || (data.web_trans as any)?.["web_translation"]?.length || 0) > 0;
+          case 'wiki': return (data.wikipedia_digest?.summarys?.length || 0) > 0;
+          case 'discrim': return (data.discrim?.discrims?.length || 0) > 0;
+          default: return false;
+      }
+  };
+
+  // Only show sections that have data
+  const activeSectionsList = useMemo(() => {
+      return navItems.filter(s => hasData(s.id));
+  }, [navItems, data]);
+
+  // Scroll Spy Logic - Adjusted to find elements by ID directly
   useEffect(() => {
     if (loading || !data) return;
     if (observer.current) observer.current.disconnect();
 
     const options = {
       root: null,
-      rootMargin: '-20% 0px -70% 0px', 
+      rootMargin: '-10% 0px -80% 0px', // Trigger when section is near top
       threshold: 0
     };
 
@@ -91,20 +145,47 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
       });
     }, options);
 
-    Object.values(sectionRefs.current).forEach(el => {
-      if (el) observer.current?.observe(el);
+    // Observe all active section elements
+    activeSectionsList.forEach(section => {
+        const el = document.getElementById(section.id);
+        if (el) observer.current?.observe(el);
     });
 
     return () => observer.current?.disconnect();
-  }, [data, loading]);
+  }, [data, loading, activeSectionsList]);
 
   const scrollToSection = (id: string) => {
-    const el = sectionRefs.current[id];
+    const el = document.getElementById(id);
     if (el) {
       const y = el.getBoundingClientRect().top + window.pageYOffset - 80;
       window.scrollTo({ top: y, behavior: 'smooth' });
       setActiveSection(id);
     }
+  };
+
+  // Drag Handlers
+  const handleDragStart = (index: number) => {
+      setDraggedNavIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+      e.preventDefault();
+      if (draggedNavIndex === null || draggedNavIndex === index) return;
+      
+      const newItems = [...navItems];
+      const draggedItem = newItems[draggedNavIndex];
+      newItems.splice(draggedNavIndex, 1);
+      newItems.splice(index, 0, draggedItem);
+      
+      setNavItems(newItems);
+      setDraggedNavIndex(index);
+  };
+
+  const handleDragEnd = () => {
+      setDraggedNavIndex(null);
+      // Save order
+      const orderIds = navItems.map(item => item.id);
+      localStorage.setItem('context-lingo-nav-order', JSON.stringify(orderIds));
   };
 
   if (loading) {
@@ -131,35 +212,6 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
       );
   }
 
-  // Helper to determine which sections have data
-  const hasData = (id: string) => {
-      switch(id) {
-          case 'basic': return !!data.ec;
-          case 'images': return (data.pic_dict?.pic?.length || 0) > 0;
-          case 'expand_ec': return (data.expand_ec?.word?.length || 0) > 0;
-          case 'special': return (data.special?.entries?.length || 0) > 0; // Check Special
-          case 'collins_primary': return (data.collins_primary?.gramcat?.length || 0) > 0;
-          case 'collins_old': return (data.collins?.collins_entries?.length || 0) > 0;
-          case 'ee': return (data.ee?.word?.trs?.length || 0) > 0;
-          case 'video_lecture': return (data.word_video?.word_videos?.length || 0) > 0;
-          case 'video_scene': return (data.video_sents?.sents_data?.length || data.video_sents?.video_sent?.length || (data.video_sents as any)?.sent?.length || 0) > 0;
-          case 'music': return (data.music_sents?.sents_data?.length || data.music_sents?.music_sent?.length || (data.music_sents as any)?.songs?.length || 0) > 0;
-          case 'phrases': return (data.phrs?.phrs?.length || 0) > 0;
-          case 'synonyms': return (data.syno?.synos?.length || 0) > 0;
-          case 'roots': return (data.rel_word?.rels?.length || 0) > 0;
-          case 'etym': return !!(data.etym?.etyms?.zh || data.etym?.etyms?.en);
-          case 'sentences': return (data.blng_sents_part?.["sentence-pair"]?.length || 0) > 0;
-          case 'media_sents': return (data.media_sents_part?.sent?.length || 0) > 0;
-          case 'exams': return !!(data.individual?.examInfo?.questionTypeInfo?.length || data.individual?.pastExamSents?.length || data.individual?.idiomatic?.length);
-          case 'web_trans': return (data.web_trans?.["web-translation"]?.length || (data.web_trans as any)?.["web_translation"]?.length || 0) > 0;
-          case 'wiki': return (data.wikipedia_digest?.summarys?.length || 0) > 0;
-          case 'discrim': return (data.discrim?.discrims?.length || 0) > 0;
-          default: return false;
-      }
-  };
-
-  const activeSectionsList = SECTIONS.filter(s => hasData(s.id));
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-blue-100">
       
@@ -179,135 +231,131 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
       <div className="max-w-7xl mx-auto p-6 lg:p-8">
           <div className="flex flex-col lg:flex-row gap-8 items-start">
               
-              {/* 2. Left Sidebar Navigation */}
+              {/* 2. Left Sidebar Navigation (Sortable) */}
               <nav className="hidden lg:block w-64 shrink-0 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar pr-2">
                   <div className="space-y-1">
-                      {activeSectionsList.map(section => (
-                          <button
-                              key={section.id}
-                              onClick={() => scrollToSection(section.id)}
-                              className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${
-                                  activeSection === section.id 
-                                  ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
-                                  : 'text-slate-500 hover:bg-white hover:text-slate-800 hover:shadow-sm'
-                              }`}
-                          >
-                              <section.icon className={`w-4 h-4 mr-3 ${activeSection === section.id ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                              {section.label}
-                          </button>
-                      ))}
+                      {activeSectionsList.map((section, index) => {
+                          // Find original index in full list for drag handling
+                          const fullIndex = navItems.findIndex(s => s.id === section.id);
+                          
+                          return (
+                            <div
+                                key={section.id}
+                                draggable
+                                onDragStart={() => handleDragStart(fullIndex)}
+                                onDragOver={(e) => handleDragOver(e, fullIndex)}
+                                onDragEnd={handleDragEnd}
+                                onClick={() => scrollToSection(section.id)}
+                                className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group cursor-pointer ${
+                                    activeSection === section.id 
+                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
+                                    : 'text-slate-500 hover:bg-white hover:text-slate-800 hover:shadow-sm'
+                                } ${draggedNavIndex === fullIndex ? 'opacity-50 border-2 border-dashed border-blue-400' : ''}`}
+                            >
+                                <GripVertical className={`w-3 h-3 mr-2 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing ${activeSection === section.id ? 'text-blue-200' : 'text-slate-300'}`} />
+                                <section.icon className={`w-4 h-4 mr-3 ${activeSection === section.id ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                                {section.label}
+                            </div>
+                          );
+                      })}
                   </div>
               </nav>
 
               {/* 3. Main Content Area */}
               <div className="flex-1 w-full space-y-8 min-w-0">
                   
-                  <div id="basic" ref={el => sectionRefs.current['basic'] = el}>
+                  {/* Basic Info */}
+                  <div id="basic">
                       <BasicInfo word={word} ec={data.ec} />
                   </div>
 
+                  {/* Images */}
                   {hasData('images') && (
-                      <div id="images" ref={el => sectionRefs.current['images'] = el}>
+                      <div id="images">
                           <ImageGallery word={word} picDict={data.pic_dict} />
                       </div>
                   )}
 
+                  {/* Expand EC */}
                   {hasData('expand_ec') && (
-                      <div id="expand_ec" ref={el => sectionRefs.current['expand_ec'] = el}>
+                      <div id="expand_ec">
                           <ExpandEcSection expandEc={data.expand_ec} />
                       </div>
                   )}
 
+                  {/* Special */}
                   {hasData('special') && (
-                      <div id="special" ref={el => sectionRefs.current['special'] = el}>
+                      <div id="special">
                           <SpecialSection special={data.special} />
                       </div>
                   )}
 
+                  {/* Collins */}
                   {(hasData('collins_primary') || hasData('collins_old')) && (
-                      <div ref={el => {
-                          if (hasData('collins_primary')) sectionRefs.current['collins_primary'] = el;
-                          if (hasData('collins_old')) sectionRefs.current['collins_old'] = el;
-                      }}>
-                          <CollinsSection word={word} collinsPrimary={data.collins_primary} collinsOld={data.collins} />
-                      </div>
+                      <CollinsSection word={word} collinsPrimary={data.collins_primary} collinsOld={data.collins} />
                   )}
 
+                  {/* EE */}
                   {hasData('ee') && (
-                      <div id="ee" ref={el => sectionRefs.current['ee'] = el}>
+                      <div id="ee">
                           <EeSection ee={data.ee} />
                       </div>
                   )}
 
                   {/* Video Lectures */}
                   {hasData('video_lecture') && (
-                      <div id="video_lecture" ref={el => sectionRefs.current['video_lecture'] = el}>
-                          <MediaSection 
-                              wordVideos={data.word_video} 
-                          />
+                      <div id="video_lecture">
+                          <MediaSection wordVideos={data.word_video} />
                       </div>
                   )}
 
                   {/* Video Scenes */}
                   {hasData('video_scene') && (
-                      <div id="video_scene" ref={el => sectionRefs.current['video_scene'] = el}>
-                          <MediaSection 
-                              videoSents={data.video_sents} 
-                          />
+                      <div id="video_scene">
+                          <MediaSection videoSents={data.video_sents} />
                       </div>
                   )}
 
-                  {/* Music - Separate Block */}
+                  {/* Music */}
                   {hasData('music') && (
-                      <div id="music" ref={el => sectionRefs.current['music'] = el}>
-                          <MediaSection 
-                              musicSents={data.music_sents} 
-                          />
+                      <div id="music">
+                          <MediaSection musicSents={data.music_sents} />
                       </div>
                   )}
 
+                  {/* Relationships (Phrases, Synonyms, Discrim, Roots, Etym) */}
                   {(hasData('phrases') || hasData('synonyms') || hasData('discrim') || hasData('roots') || hasData('etym')) && (
-                      <div ref={el => {
-                          if (hasData('phrases')) sectionRefs.current['phrases'] = el;
-                          if (hasData('synonyms')) sectionRefs.current['synonyms'] = el;
-                          if (hasData('discrim')) sectionRefs.current['discrim'] = el;
-                          if (hasData('roots')) sectionRefs.current['roots'] = el;
-                          if (hasData('etym')) sectionRefs.current['etym'] = el;
-                      }}>
-                          <RelationshipSection 
-                              phrs={data.phrs} 
-                              syno={data.syno} 
-                              discrim={data.discrim}
-                              relWord={data.rel_word}
-                              etym={data.etym}
-                          />
-                      </div>
+                      <RelationshipSection 
+                          phrs={data.phrs} 
+                          syno={data.syno} 
+                          discrim={data.discrim}
+                          relWord={data.rel_word}
+                          etym={data.etym}
+                      />
                   )}
 
+                  {/* Sentences (Bilingual & Media) */}
                   {(hasData('sentences') || hasData('media_sents')) && (
-                      <div ref={el => {
-                          if (hasData('sentences')) sectionRefs.current['sentences'] = el;
-                          if (hasData('media_sents')) sectionRefs.current['media_sents'] = el;
-                      }}>
-                          <SentenceSection bilingual={data.blng_sents_part} media={data.media_sents_part} />
-                      </div>
+                      <SentenceSection bilingual={data.blng_sents_part} media={data.media_sents_part} />
                   )}
 
-                  {/* Separated Sections for Exams, WebTrans, Wiki */}
+                  {/* Exams */}
                   {hasData('exams') && (
-                      <div id="exams" ref={el => sectionRefs.current['exams'] = el}>
+                      <div id="exams">
                           <ExamsSection individual={data.individual} />
                       </div>
                   )}
 
+                  {/* Web Trans */}
                   {hasData('web_trans') && (
-                      <div id="web_trans" ref={el => sectionRefs.current['web_trans'] = el}>
+                      <div id="web_trans">
                           <WebTransSection webTrans={data.web_trans} />
                       </div>
                   )}
 
+                  {/* Wiki */}
                   {hasData('wiki') && (
-                      <div id="wiki" ref={el => sectionRefs.current['wiki'] = el}>
+                      <div id="wiki">
                           <WikiSection wiki={data.wikipedia_digest} />
                       </div>
                   )}
