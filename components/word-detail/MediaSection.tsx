@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Youtube, Tv, Music, Volume2, ExternalLink, PlayCircle, Disc, Mic2, PauseCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Youtube, Tv, Music, Volume2, ExternalLink, PlayCircle, Disc, Mic2, PauseCircle, ArrowLeft, ArrowRight, Subtitles } from 'lucide-react';
 import { WordVideoData, VideoSentsData, MusicSentsData, MusicSentItem } from '../../types/youdao';
 import { SourceBadge } from './SourceBadge';
 import { playUrl, stopAudio } from '../../utils/audio';
@@ -15,22 +15,30 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
     const videos = wordVideos?.word_videos || [];
     
     // Updated data extraction for real videos using sents_data (primary)
-    // Fallbacks to legacy fields if needed
     const realVideos = videoSents?.sents_data || videoSents?.video_sent || (videoSents as any)?.sent || [];
     
-    // Music data extraction strategy: prioritized sents_data
+    // Music data extraction strategy
     const musicList: MusicSentItem[] = musicSents?.sents_data || musicSents?.music_sent || (musicSents as any)?.songs || [];
 
+    // --- Video Carousel State ---
+    const [activeVideoIndex, setActiveVideoIndex] = useState(0);
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    
     // --- Music Carousel State ---
     const [activeMusicIndex, setActiveMusicIndex] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
+    const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
-    // Stop audio when switching songs
+    // Stop audio when switching items
     useEffect(() => {
         stopAudio();
-        setIsPlaying(false);
+        setIsMusicPlaying(false);
     }, [activeMusicIndex]);
 
+    useEffect(() => {
+        setIsVideoPlaying(false);
+    }, [activeVideoIndex]);
+
+    // --- Music Handlers ---
     const handlePrevMusic = (e?: React.MouseEvent) => {
         e?.stopPropagation();
         setActiveMusicIndex(prev => Math.max(0, prev - 1));
@@ -41,23 +49,34 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
         setActiveMusicIndex(prev => Math.min(musicList.length - 1, prev + 1));
     };
 
-    const handlePlayToggle = async (url: string) => {
-        if (isPlaying) {
+    const handleMusicPlayToggle = async (url: string) => {
+        if (isMusicPlaying) {
             stopAudio();
-            setIsPlaying(false);
+            setIsMusicPlaying(false);
         } else {
-            setIsPlaying(true);
+            setIsMusicPlaying(true);
             try {
                 await playUrl(url);
-                setIsPlaying(false); // Auto reset when done
+                setIsMusicPlaying(false); // Auto reset when done
             } catch (e) {
-                setIsPlaying(false);
+                setIsMusicPlaying(false);
             }
         }
     };
 
-    // Get current active music item
+    // --- Video Handlers ---
+    const handlePrevVideo = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        setActiveVideoIndex(prev => Math.max(0, prev - 1));
+    };
+
+    const handleNextVideo = (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        setActiveVideoIndex(prev => Math.min(realVideos.length - 1, prev + 1));
+    };
+
     const activeMusic = musicList[activeMusicIndex];
+    const activeVideo = realVideos[activeVideoIndex];
 
     return (
         <div className="space-y-8">
@@ -85,58 +104,181 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                 </div>
             )}
 
-            {/* Real Scene Videos */}
+            {/* Real Scene Videos (3D Carousel) */}
             {realVideos.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-                    <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="flex items-center gap-2 px-8 py-5 border-b border-slate-100 bg-purple-50/30">
                         <Tv className="w-5 h-5 text-purple-600" />
                         <h3 className="text-lg font-bold text-slate-800">实景视频</h3>
+                        <span className="text-xs text-purple-500 font-medium bg-purple-50 px-2 py-0.5 rounded-full ml-auto">
+                            {activeVideoIndex + 1} / {realVideos.length}
+                        </span>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                    {/* 3D Stage */}
+                    <div className="relative w-full h-[360px] bg-slate-900 flex items-center justify-center overflow-hidden perspective-1000 group select-none">
+                        {/* Background Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-slate-800">
+                            {activeVideo && (activeVideo.video_cover || activeVideo.cover) && (
+                                <img 
+                                    src={activeVideo.video_cover || activeVideo.cover} 
+                                    className="w-full h-full object-cover opacity-10 blur-xl scale-110" 
+                                />
+                            )}
+                        </div>
+
                         {realVideos.map((v: any, idx: number) => {
-                            // Unified data mapping
+                            const offset = idx - activeVideoIndex;
+                            const absOffset = Math.abs(offset);
+                            if (absOffset > 2) return null;
+
+                            const isActive = offset === 0;
+                            const xTranslate = offset * 60;
+                            const scale = isActive ? 1 : 1 - (absOffset * 0.15);
+                            const rotateY = offset > 0 ? -30 : (offset < 0 ? 30 : 0);
+                            const zIndex = 20 - absOffset;
+                            const opacity = isActive ? 1 : 0.5;
+
                             const cover = v.video_cover || v.cover;
-                            const url = v.video || v.url;
-                            // Contributor/Source
-                            const source = v.contributor || v.source;
-                            // Subtitles can come from sents array (legacy) or subtitle_srt (new)
-                            const subtitles = v.sents || (v.subtitle_srt ? [{eng: v.subtitle_srt}] : []);
+                            const videoUrl = v.video || v.url;
 
                             return (
-                                <div key={idx} className="bg-slate-50 rounded-xl overflow-hidden border border-slate-200 flex flex-col">
-                                    <a href={url} target="_blank" rel="noopener noreferrer" className="block relative aspect-video bg-slate-900 group shrink-0">
-                                        {cover && <img src={cover} className="w-full h-full object-cover opacity-90 group-hover:opacity-75 transition" />}
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center group-hover:bg-white/30 transition">
-                                                <Volume2 className="w-5 h-5 text-white" />
-                                            </div>
-                                        </div>
-                                    </a>
-                                    <div className="p-4 flex-1 flex flex-col">
-                                        <div className="space-y-2 mb-3 flex-1">
-                                            {subtitles.length > 0 ? (
-                                                subtitles.map((s: any, sIdx: number) => (
-                                                    <div key={sIdx} className="space-y-1">
-                                                        <p className="text-sm font-medium text-slate-800 line-clamp-3 leading-relaxed" title={s.eng}>
-                                                            {s.eng}
-                                                        </p>
-                                                        {s.chn && <p className="text-xs text-slate-500 line-clamp-1">{s.chn}</p>}
+                                <div 
+                                    key={idx}
+                                    onClick={() => setActiveVideoIndex(idx)}
+                                    className={`absolute w-[300px] h-[170px] sm:w-[480px] sm:h-[270px] rounded-xl shadow-2xl transition-all duration-500 ease-out cursor-pointer
+                                        ${isActive ? 'z-30 ring-1 ring-white/20' : 'z-10 hover:opacity-80'}`}
+                                    style={{
+                                        transform: `translateX(${xTranslate}%) scale(${scale}) perspective(1000px) rotateY(${rotateY}deg)`,
+                                        zIndex: zIndex,
+                                        opacity: opacity,
+                                        left: '50%',
+                                        marginLeft: '-150px', // -w/2 (mobile)
+                                    }}
+                                >
+                                    {/* Responsive margin fix for desktop via inline styles override or media query logic in CSS is better, but here we approximate center */}
+                                    <style>{`
+                                        @media (min-width: 640px) {
+                                            .video-card-${idx} { margin-left: -240px !important; }
+                                        }
+                                    `}</style>
+                                    
+                                    <div className={`video-card-${idx} w-full h-full rounded-xl overflow-hidden bg-black relative border border-white/10`}>
+                                        {isActive && isVideoPlaying ? (
+                                            <video 
+                                                src={videoUrl} 
+                                                controls 
+                                                autoPlay 
+                                                className="w-full h-full object-contain"
+                                                onEnded={() => setIsVideoPlaying(false)}
+                                            />
+                                        ) : (
+                                            <>
+                                                {cover ? (
+                                                    <img src={cover} className="w-full h-full object-cover opacity-90" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                                                        <Tv className="w-12 h-12 text-slate-600" />
                                                     </div>
-                                                ))
-                                            ) : (
-                                                <p className="text-xs text-slate-400 italic">暂无字幕预览</p>
-                                            )}
-                                        </div>
-                                        {source && (
-                                            <div className="text-[10px] text-slate-400 text-right pt-2 border-t border-slate-100 truncate">
-                                                — {source}
-                                            </div>
+                                                )}
+                                                
+                                                {isActive && (
+                                                    <div 
+                                                        className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/40 transition group/play"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setIsVideoPlaying(true);
+                                                        }}
+                                                    >
+                                                        <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 transition-transform hover:scale-110">
+                                                            <PlayCircle className="w-8 h-8 text-white ml-0.5" />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
                                     </div>
+                                    
+                                    {/* Reflection */}
+                                    {isActive && !isVideoPlaying && (
+                                        <div className="absolute -bottom-8 left-0 right-0 h-8 bg-gradient-to-b from-white/10 to-transparent blur-sm transform scale-y-[-1] opacity-40 mask-image-gradient">
+                                            {cover && <img src={cover} className="w-full h-full object-cover" />}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
+
+                        {/* Controls */}
+                        {realVideos.length > 1 && (
+                            <>
+                                <button onClick={handlePrevVideo} disabled={activeVideoIndex === 0} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 transition z-40 backdrop-blur-sm">
+                                    <ArrowLeft className="w-6 h-6" />
+                                </button>
+                                <button onClick={handleNextVideo} disabled={activeVideoIndex === realVideos.length - 1} className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 transition z-40 backdrop-blur-sm">
+                                    <ArrowRight className="w-6 h-6" />
+                                </button>
+                            </>
+                        )}
                     </div>
+
+                    {/* Subtitle / Info Panel */}
+                    {activeVideo && (
+                        <div className="bg-white p-6 border-t border-slate-100">
+                            <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-6">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Subtitles className="w-4 h-4 text-purple-500" />
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Subtitles / Context</span>
+                                    </div>
+                                    
+                                    <div className="bg-purple-50/50 rounded-xl p-5 border border-purple-100/50">
+                                        {activeVideo.sents && activeVideo.sents.length > 0 ? (
+                                            activeVideo.sents.map((s: any, idx: number) => (
+                                                <div key={idx} className="space-y-1.5">
+                                                    <p className="text-lg font-medium text-slate-800 leading-relaxed font-serif">
+                                                        "{s.eng}"
+                                                    </p>
+                                                    {s.chn && <p className="text-sm text-slate-500">{s.chn}</p>}
+                                                </div>
+                                            ))
+                                        ) : activeVideo.subtitle_srt ? (
+                                            <div className="space-y-1.5">
+                                                <p className="text-lg font-medium text-slate-800 leading-relaxed font-serif">
+                                                    {activeVideo.subtitle_srt}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <p className="text-slate-400 italic text-sm">暂无字幕信息</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="md:w-64 shrink-0 flex flex-col justify-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
+                                    <div className="space-y-3">
+                                        {(activeVideo.contributor || activeVideo.source) && (
+                                            <div>
+                                                <span className="text-[10px] text-slate-400 uppercase block mb-1">Source / Contributor</span>
+                                                <span className="text-sm font-bold text-slate-700">{activeVideo.contributor || activeVideo.source}</span>
+                                            </div>
+                                        )}
+                                        {/* Fallback link if video fails or user wants to view externally */}
+                                        {(activeVideo.video || activeVideo.url) && (
+                                            <a 
+                                                href={activeVideo.video || activeVideo.url} 
+                                                target="_blank" 
+                                                rel="noreferrer"
+                                                className="inline-flex items-center text-xs text-blue-600 hover:underline mt-2"
+                                            >
+                                                <ExternalLink className="w-3 h-3 mr-1" />
+                                                原始链接
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <SourceBadge source="video_sents" />
                 </div>
             )}
@@ -200,7 +342,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                         // Media query handling via JS logic is tricky here, rely on centering via left 50%
                                     }}
                                 >
-                                    <div className={`w-full h-full rounded-xl overflow-hidden bg-slate-800 relative border border-white/10 ${isActive && isPlaying ? 'animate-pulse-slow' : ''}`}>
+                                    <div className={`w-full h-full rounded-xl overflow-hidden bg-slate-800 relative border border-white/10 ${isActive && isMusicPlaying ? 'animate-pulse-slow' : ''}`}>
                                         {cover ? (
                                             <img src={cover} className="w-full h-full object-cover" alt={title} />
                                         ) : (
@@ -218,11 +360,11 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                                 className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/40 transition group/play"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handlePlayToggle(m.playUrl || m.url || '');
+                                                    handleMusicPlayToggle(m.playUrl || m.url || '');
                                                 }}
                                             >
-                                                <div className={`w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 transition-transform ${isPlaying ? 'scale-100' : 'scale-90 group-hover/play:scale-110'}`}>
-                                                    {isPlaying ? (
+                                                <div className={`w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 transition-transform ${isMusicPlaying ? 'scale-100' : 'scale-90 group-hover/play:scale-110'}`}>
+                                                    {isMusicPlaying ? (
                                                         <PauseCircle className="w-6 h-6 text-white" />
                                                     ) : (
                                                         <PlayCircle className="w-6 h-6 text-white ml-0.5" />
