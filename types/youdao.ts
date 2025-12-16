@@ -151,8 +151,19 @@ export interface MusicSentsData {
 
 // --- 10. Wikipedia & Web Trans ---
 export interface WikiDigestData { summarys?: { summary?: string; key?: string }[]; source?: { name?: string; url?: string }; }
-export interface WebTransItem { key?: string; trans?: { value?: string; support?: number }[]; }
-export interface WebTransData { web_translation?: WebTransItem[]; }
+
+// Updated Web Trans Types
+export interface WebTransItem { 
+    key?: string; 
+    "key-speech"?: string;
+    trans?: { 
+        value?: string; 
+        support?: number;
+        cls?: { cl?: string[] };
+        summary?: { line?: string[] };
+    }[]; 
+}
+export interface WebTransData { "web-translation"?: WebTransItem[]; }
 
 // --- 11. Exams (individual) ---
 export interface ExamQuestion { question?: string; answer?: string; choices?: string[]; source?: string; } // Hypothetical structure, adapting to common fields
