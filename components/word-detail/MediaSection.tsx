@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Youtube, Tv, Music, Volume2, ExternalLink, PlayCircle, Disc, Mic2, PauseCircle, ArrowLeft, ArrowRight, Subtitles } from 'lucide-react';
+import { Youtube, Tv, Music, Volume2, ExternalLink, PlayCircle, Disc, Mic2, PauseCircle, ArrowLeft, ArrowRight, Subtitles, User, Link as LinkIcon } from 'lucide-react';
 import { WordVideoData, VideoSentsData, MusicSentsData, MusicSentItem } from '../../types/youdao';
 import { SourceBadge } from './SourceBadge';
 import { playUrl, stopAudio } from '../../utils/audio';
@@ -117,7 +117,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                     </div>
 
                     {/* 3D Stage */}
-                    <div className="relative w-full h-[360px] bg-slate-900 flex items-center justify-center overflow-hidden perspective-1000 group select-none">
+                    <div className="relative w-full h-[400px] bg-slate-900 flex items-center justify-center overflow-hidden perspective-1000 group select-none">
                         {/* Background Effect */}
                         <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-slate-800">
                             {activeVideo && (activeVideo.video_cover || activeVideo.cover) && (
@@ -164,7 +164,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                         }
                                     `}</style>
                                     
-                                    <div className={`video-card-${idx} w-full h-full rounded-xl overflow-hidden bg-black relative border border-white/10`}>
+                                    <div className={`video-card-${idx} w-full h-full rounded-xl overflow-hidden bg-black relative border border-white/10 group/card`}>
                                         {isActive && isVideoPlaying ? (
                                             <video 
                                                 src={videoUrl} 
@@ -199,6 +199,32 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                                 )}
                                             </>
                                         )}
+
+                                        {/* --- Embedded Subtitles --- */}
+                                        {isActive && (
+                                            <div className={`absolute bottom-0 left-0 right-0 p-4 transition-opacity duration-300 ${isVideoPlaying ? 'opacity-100' : 'opacity-100 bg-gradient-to-t from-black/80 via-black/40 to-transparent'}`}>
+                                                <div className="text-center">
+                                                    {v.sents && v.sents.length > 0 ? (
+                                                        v.sents.map((s: any, idx: number) => (
+                                                            <div key={idx} className="mb-1 last:mb-0">
+                                                                <p className="text-white text-base md:text-lg font-bold leading-tight drop-shadow-md" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                                                                    {s.eng}
+                                                                </p>
+                                                                {s.chn && (
+                                                                    <p className="text-white/90 text-xs md:text-sm mt-1 font-medium drop-shadow-md" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                                                                        {s.chn}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ))
+                                                    ) : v.subtitle_srt ? (
+                                                        <p className="text-white text-sm font-medium drop-shadow-md" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+                                                            {v.subtitle_srt}
+                                                        </p>
+                                                    ) : null}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     
                                     {/* Reflection */}
@@ -224,61 +250,29 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                         )}
                     </div>
 
-                    {/* Subtitle / Info Panel */}
+                    {/* Meta Info Bar (Simplified) */}
                     {activeVideo && (
-                        <div className="bg-white p-6 border-t border-slate-100">
-                            <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-6">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <Subtitles className="w-4 h-4 text-purple-500" />
-                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Subtitles / Context</span>
+                        <div className="bg-white px-6 py-3 border-t border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                {(activeVideo.contributor || activeVideo.source) && (
+                                    <div className="flex items-center text-xs text-slate-500">
+                                        <User className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+                                        <span>{activeVideo.contributor || activeVideo.source}</span>
                                     </div>
-                                    
-                                    <div className="bg-purple-50/50 rounded-xl p-5 border border-purple-100/50">
-                                        {activeVideo.sents && activeVideo.sents.length > 0 ? (
-                                            activeVideo.sents.map((s: any, idx: number) => (
-                                                <div key={idx} className="space-y-1.5">
-                                                    <p className="text-lg font-medium text-slate-800 leading-relaxed font-serif">
-                                                        "{s.eng}"
-                                                    </p>
-                                                    {s.chn && <p className="text-sm text-slate-500">{s.chn}</p>}
-                                                </div>
-                                            ))
-                                        ) : activeVideo.subtitle_srt ? (
-                                            <div className="space-y-1.5">
-                                                <p className="text-lg font-medium text-slate-800 leading-relaxed font-serif">
-                                                    {activeVideo.subtitle_srt}
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <p className="text-slate-400 italic text-sm">暂无字幕信息</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="md:w-64 shrink-0 flex flex-col justify-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
-                                    <div className="space-y-3">
-                                        {(activeVideo.contributor || activeVideo.source) && (
-                                            <div>
-                                                <span className="text-[10px] text-slate-400 uppercase block mb-1">Source / Contributor</span>
-                                                <span className="text-sm font-bold text-slate-700">{activeVideo.contributor || activeVideo.source}</span>
-                                            </div>
-                                        )}
-                                        {/* Fallback link if video fails or user wants to view externally */}
-                                        {(activeVideo.video || activeVideo.url) && (
-                                            <a 
-                                                href={activeVideo.video || activeVideo.url} 
-                                                target="_blank" 
-                                                rel="noreferrer"
-                                                className="inline-flex items-center text-xs text-blue-600 hover:underline mt-2"
-                                            >
-                                                <ExternalLink className="w-3 h-3 mr-1" />
-                                                原始链接
-                                            </a>
-                                        )}
-                                    </div>
-                                </div>
+                                )}
                             </div>
+                            
+                            {(activeVideo.video || activeVideo.url) && (
+                                <a 
+                                    href={activeVideo.video || activeVideo.url} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="flex items-center text-xs text-blue-500 hover:text-blue-700 font-medium transition-colors"
+                                >
+                                    <LinkIcon className="w-3.5 h-3.5 mr-1.5" />
+                                    原始链接
+                                </a>
+                            )}
                         </div>
                     )}
                     <SourceBadge source="video_sents" />
