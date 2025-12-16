@@ -1,12 +1,14 @@
 
-import React from 'react';
-import { FileQuestion, Network, BookOpen, Volume2, Tag, CheckCircle2, Quote } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileQuestion, Network, BookOpen, Volume2, Tag, CheckCircle2, Quote, ChevronDown, ChevronUp } from 'lucide-react';
 import { IndividualData, WebTransData, WikiDigestData } from '../../types/youdao';
 import { SourceBadge } from './SourceBadge';
 import { playUrl } from '../../utils/audio';
 
 // --- 1. Exams Section ---
 export const ExamsSection: React.FC<{ individual?: IndividualData }> = ({ individual }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
     if (!individual) return null;
     
     const { examInfo, pastExamSents, idiomatic } = individual;
@@ -16,6 +18,8 @@ export const ExamsSection: React.FC<{ individual?: IndividualData }> = ({ indivi
 
     if (questionTypes.length === 0 && sentences.length === 0 && phrases.length === 0) return null;
 
+    const displayedSentences = isExpanded ? sentences : sentences.slice(0, 5);
+
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
             <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
@@ -23,7 +27,24 @@ export const ExamsSection: React.FC<{ individual?: IndividualData }> = ({ indivi
                 <h3 className="text-lg font-bold text-slate-800">考试真题 (Exams)</h3>
             </div>
 
-            {/* 1. Exam Frequency Stats (Tag Cloud) */}
+            {/* 1. Idiomatic Phrases (Moved to Top) */}
+            {phrases.length > 0 && (
+                <div className="mb-8">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
+                        <CheckCircle2 className="w-3 h-3 mr-1.5" /> 考点词组
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {phrases.map((phrase, idx) => (
+                            <div key={idx} className="flex flex-col p-3 border border-slate-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all bg-white group">
+                                <span className="font-bold text-slate-700 text-sm mb-1 group-hover:text-indigo-700 transition-colors">{phrase.colloc?.en}</span>
+                                <span className="text-xs text-slate-500">{phrase.colloc?.zh}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* 2. Exam Frequency Stats (Tag Cloud) */}
             {questionTypes.length > 0 && (
                 <div className="mb-8">
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
@@ -42,14 +63,14 @@ export const ExamsSection: React.FC<{ individual?: IndividualData }> = ({ indivi
                 </div>
             )}
 
-            {/* 2. Past Exam Sentences */}
+            {/* 3. Past Exam Sentences (With Show More) */}
             {sentences.length > 0 && (
-                <div className="mb-8">
+                <div>
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
                         <Quote className="w-3 h-3 mr-1.5" /> 真题例句
                     </h4>
                     <div className="space-y-4">
-                        {sentences.slice(0, 5).map((sent, idx) => (
+                        {displayedSentences.map((sent, idx) => (
                             <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-slate-50/80 transition-colors">
                                 <p className="text-slate-800 font-medium leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: sent.en || '' }} />
                                 <div className="flex items-start justify-between gap-4">
@@ -63,23 +84,22 @@ export const ExamsSection: React.FC<{ individual?: IndividualData }> = ({ indivi
                             </div>
                         ))}
                     </div>
-                </div>
-            )}
-
-            {/* 3. Idiomatic Phrases */}
-            {phrases.length > 0 && (
-                <div>
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
-                        <CheckCircle2 className="w-3 h-3 mr-1.5" /> 考点词组
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {phrases.map((phrase, idx) => (
-                            <div key={idx} className="flex flex-col p-3 border border-slate-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all bg-white group">
-                                <span className="font-bold text-slate-700 text-sm mb-1 group-hover:text-indigo-700 transition-colors">{phrase.colloc?.en}</span>
-                                <span className="text-xs text-slate-500">{phrase.colloc?.zh}</span>
-                            </div>
-                        ))}
-                    </div>
+                    {sentences.length > 5 && (
+                        <button 
+                            onClick={() => setIsExpanded(!isExpanded)}
+                            className="w-full mt-4 flex items-center justify-center py-2 text-sm text-indigo-600 font-medium hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 group"
+                        >
+                            {isExpanded ? (
+                                <>
+                                    收起 <ChevronUp className="w-4 h-4 ml-1 group-hover:-translate-y-0.5 transition-transform" />
+                                </>
+                            ) : (
+                                <>
+                                    显示更多真题 ({sentences.length - 5} 条) <ChevronDown className="w-4 h-4 ml-1 group-hover:translate-y-0.5 transition-transform" />
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             )}
             
