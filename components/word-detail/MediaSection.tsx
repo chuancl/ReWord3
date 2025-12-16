@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { Youtube, Tv, Music, Volume2 } from 'lucide-react';
+import { Youtube, Tv, Music, Volume2, ExternalLink, PlayCircle } from 'lucide-react';
 import { WordVideoData, VideoSentsData, MusicSentsData } from '../../types/youdao';
 import { SourceBadge } from './SourceBadge';
+import { playUrl } from '../../utils/audio';
 
 interface MediaSectionProps {
     wordVideos?: WordVideoData;
@@ -16,8 +17,8 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
     // Enhanced data extraction: check for 'video_sent' (standard) or fallback to 'sent'
     const realVideos = videoSents?.video_sent || (videoSents as any)?.sent || [];
     
-    // Enhanced data extraction: check for 'music_sent' (standard) or fallback to 'songs'
-    const music = musicSents?.music_sent || (musicSents as any)?.songs || [];
+    // Enhanced data extraction: check for 'sents_data' (standard) or fallback to 'music_sent' or 'songs'
+    const music = musicSents?.sents_data || musicSents?.music_sent || (musicSents as any)?.songs || [];
 
     return (
         <div className="space-y-8">
@@ -88,23 +89,54 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                     </div>
                     <div className="space-y-4">
                         {music.map((m: any, idx: number) => (
-                            <div key={idx} className="flex gap-4 items-center bg-pink-50/30 p-4 rounded-xl border border-pink-100">
-                                <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center shrink-0">
-                                    <Music className="w-6 h-6 text-pink-500" />
+                            <div key={idx} className="flex gap-4 items-start bg-pink-50/30 p-4 rounded-xl border border-pink-100 group">
+                                <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center shrink-0 mt-1">
+                                    {m.cover ? (
+                                        <img src={m.cover} className="w-full h-full rounded-full object-cover opacity-90" alt={m.song_name} />
+                                    ) : (
+                                        <Music className="w-6 h-6 text-pink-500" />
+                                    )}
                                 </div>
                                 <div className="flex-1 min-w-0">
+                                    {/* Song Metadata Row */}
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-slate-800 text-sm">{m.song_name || 'Unknown Song'}</span>
+                                            {m.singer && <span className="text-xs text-slate-500">{m.singer}</span>}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {m.playUrl && (
+                                                <button 
+                                                    onClick={() => playUrl(m.playUrl)}
+                                                    className="p-1.5 bg-pink-100 text-pink-600 rounded-full hover:bg-pink-200 transition"
+                                                    title="播放片段 (Preview Snippet)"
+                                                >
+                                                    <PlayCircle className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            {(m.link || m.url) && (
+                                                <a 
+                                                    href={m.link || m.url} 
+                                                    target="_blank" 
+                                                    rel="noreferrer" 
+                                                    className="text-pink-500 hover:text-pink-700 flex items-center text-xs font-medium px-2 py-1 rounded hover:bg-pink-50 transition"
+                                                >
+                                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                                    完整版
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Lyrics Snippets */}
                                     {m.sents?.map((s: any, sIdx: number) => (
-                                        <div key={sIdx}>
-                                            <p className="font-serif text-slate-800 italic text-lg leading-relaxed">"{s.eng}"</p>
-                                            <p className="text-sm text-slate-500 mt-1">{s.chn}</p>
+                                        <div key={sIdx} className="mb-2 last:mb-0">
+                                            <p className="font-serif text-slate-700 italic text-base leading-relaxed pl-2 border-l-2 border-pink-200">
+                                                "{s.eng}"
+                                            </p>
+                                            {s.chn && <p className="text-xs text-slate-400 mt-1 pl-2">{s.chn}</p>}
                                         </div>
                                     ))}
-                                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
-                                        <span className="font-bold text-slate-600">{m.song_name}</span>
-                                        <span>•</span>
-                                        <span>{m.singer}</span>
-                                        {m.url && <a href={m.url} target="_blank" rel="noreferrer" className="ml-auto text-pink-500 hover:underline">去试听</a>}
-                                    </div>
                                 </div>
                             </div>
                         ))}

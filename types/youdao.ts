@@ -104,8 +104,20 @@ export interface VideoSentItem { sents?: { eng?: string; chn?: string }[]; cover
 export interface VideoSentsData { video_sent?: VideoSentItem[]; }
 
 // --- 9. Music (music_sents) ---
-export interface MusicSentItem { sents?: { eng?: string; chn?: string }[]; song_name?: string; singer?: string; url?: string; cover?: string; }
-export interface MusicSentsData { music_sent?: MusicSentItem[]; }
+export interface MusicSentItem { 
+    sents?: { eng?: string; chn?: string }[]; 
+    song_name?: string; 
+    singer?: string; 
+    url?: string; 
+    cover?: string;
+    // New fields based on user feedback
+    link?: string;     // Original song link
+    playUrl?: string;  // Snippet audio link
+}
+export interface MusicSentsData { 
+    music_sent?: MusicSentItem[]; 
+    sents_data?: MusicSentItem[]; // Alternative field name often used by API
+}
 
 // --- 10. Wikipedia & Web Trans ---
 export interface WikiDigestData { summarys?: { summary?: string; key?: string }[]; source?: { name?: string; url?: string }; }

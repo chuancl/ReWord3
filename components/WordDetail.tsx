@@ -140,9 +140,9 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
           case 'collins_old': return (data.collins?.collins_entries?.length || 0) > 0;
           case 'ee': return (data.ee?.word?.trs?.length || 0) > 0;
           case 'video_lecture': return (data.word_video?.word_videos?.length || 0) > 0;
-          // Enhanced checks for video_scene and music: check for 'sent' or 'songs' properties too
+          // Enhanced checks for video_scene and music: check for 'sent' or 'songs' or 'sents_data' properties
           case 'video_scene': return (data.video_sents?.video_sent?.length || (data.video_sents as any)?.sent?.length || 0) > 0;
-          case 'music': return (data.music_sents?.music_sent?.length || (data.music_sents as any)?.songs?.length || 0) > 0;
+          case 'music': return (data.music_sents?.music_sent?.length || data.music_sents?.sents_data?.length || (data.music_sents as any)?.songs?.length || 0) > 0;
           case 'phrases': return (data.phrs?.phrs?.length || 0) > 0;
           case 'synonyms': return (data.syno?.synos?.length || 0) > 0;
           case 'roots': return (data.rel_word?.rels?.length || 0) > 0;
