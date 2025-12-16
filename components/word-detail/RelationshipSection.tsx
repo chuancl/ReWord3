@@ -31,14 +31,34 @@ export const RelationshipSection: React.FC<RelationshipSectionProps> = ({ phrs, 
                         <h3 className="text-lg font-bold text-slate-800">常用词组 (Phrases)</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {phrases.slice(0, 15).map((phr, idx) => {
-                            const head = phr.headword?.l?.i;
-                            const trans = phr.trs?.[0]?.tr?.[0]?.l?.i;
+                        {phrases.slice(0, 30).map((item, idx) => {
+                            // Extract Headword: phr.headword.l.i
+                            const head = item.phr?.headword?.l?.i;
+                            
+                            // Extract Translations: Iterate trs -> tr -> l.i
+                            const trs = item.phr?.trs || [];
+                            const transList: string[] = [];
+                            
+                            trs.forEach(t => {
+                                // t.tr can be a single object or an array
+                                const trData = t.tr;
+                                if (Array.isArray(trData)) {
+                                    trData.forEach(sub => {
+                                        if (sub?.l?.i) transList.push(sub.l.i);
+                                    });
+                                } else if (trData?.l?.i) {
+                                    transList.push(trData.l.i);
+                                }
+                            });
+                            
+                            const trans = transList.join('; ');
+
                             if (!head || !trans) return null;
+                            
                             return (
                                 <div key={idx} className="flex flex-col p-3 rounded-lg border border-slate-100 hover:border-green-200 hover:bg-green-50/30 transition group">
                                     <span className="font-bold text-slate-700 group-hover:text-green-700 mb-1">{head}</span>
-                                    <span className="text-xs text-slate-500 truncate" title={trans}>{trans}</span>
+                                    <span className="text-xs text-slate-500 line-clamp-2" title={trans}>{trans}</span>
                                 </div>
                             );
                         })}

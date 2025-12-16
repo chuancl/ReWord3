@@ -59,8 +59,17 @@ export interface CollinsPrimaryGramcat {
 export interface CollinsPrimaryData { gramcat?: CollinsPrimaryGramcat[]; words?: { word?: string }; }
 
 // --- 3. Phrases & Synonyms & Roots ---
-export interface PhrItem { headword?: { l?: { i?: string } }; trs?: { tr?: { l?: { i?: string } }[]; }[]; }
+// Updated PhrItem based on user feedback: phrs.phrs[0].phr.headword...
+export interface PhrInner {
+    headword?: { l?: { i?: string } };
+    // trs array containing tr which can be object or array
+    trs?: { tr?: { l?: { i?: string } } | { l?: { i?: string } }[] }[]; 
+}
+export interface PhrItem { 
+    phr?: PhrInner;
+}
 export interface PhrsData { phrs?: PhrItem[]; }
+
 export interface SynoItem { pos?: string; tran?: string; ws?: { w?: string }[]; }
 export interface SynoData { synos?: { syno?: SynoItem; }[]; }
 export interface RelItem { pos?: string; words?: { word?: string; tran?: string }[]; }
