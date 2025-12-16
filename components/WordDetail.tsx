@@ -265,27 +265,27 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
               <div className="flex-1 w-full space-y-8 min-w-0">
                   
                   {/* Basic Info */}
-                  <div id="basic">
+                  <div id="basic" className="scroll-mt-24">
                       <BasicInfo word={word} ec={data.ec} />
                   </div>
 
                   {/* Images */}
                   {hasData('images') && (
-                      <div id="images">
+                      <div id="images" className="scroll-mt-24">
                           <ImageGallery word={word} picDict={data.pic_dict} />
                       </div>
                   )}
 
                   {/* Expand EC */}
                   {hasData('expand_ec') && (
-                      <div id="expand_ec">
+                      <div id="expand_ec" className="scroll-mt-24">
                           <ExpandEcSection expandEc={data.expand_ec} />
                       </div>
                   )}
 
                   {/* Special */}
                   {hasData('special') && (
-                      <div id="special">
+                      <div id="special" className="scroll-mt-24">
                           <SpecialSection special={data.special} />
                       </div>
                   )}
@@ -297,28 +297,28 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
 
                   {/* EE */}
                   {hasData('ee') && (
-                      <div id="ee">
+                      <div id="ee" className="scroll-mt-24">
                           <EeSection ee={data.ee} />
                       </div>
                   )}
 
                   {/* Video Lectures */}
                   {hasData('video_lecture') && (
-                      <div id="video_lecture">
+                      <div id="video_lecture" className="scroll-mt-24">
                           <MediaSection wordVideos={data.word_video} />
                       </div>
                   )}
 
                   {/* Video Scenes */}
                   {hasData('video_scene') && (
-                      <div id="video_scene">
+                      <div id="video_scene" className="scroll-mt-24">
                           <MediaSection videoSents={data.video_sents} />
                       </div>
                   )}
 
                   {/* Music */}
                   {hasData('music') && (
-                      <div id="music">
+                      <div id="music" className="scroll-mt-24">
                           <MediaSection musicSents={data.music_sents} />
                       </div>
                   )}
@@ -341,21 +341,21 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
 
                   {/* Exams */}
                   {hasData('exams') && (
-                      <div id="exams">
+                      <div id="exams" className="scroll-mt-24">
                           <ExamsSection individual={data.individual} />
                       </div>
                   )}
 
                   {/* Web Trans */}
                   {hasData('web_trans') && (
-                      <div id="web_trans">
+                      <div id="web_trans" className="scroll-mt-24">
                           <WebTransSection webTrans={data.web_trans} />
                       </div>
                   )}
 
                   {/* Wiki */}
                   {hasData('wiki') && (
-                      <div id="wiki">
+                      <div id="wiki" className="scroll-mt-24">
                           <WikiSection wiki={data.wikipedia_digest} />
                       </div>
                   )}

@@ -18,7 +18,7 @@ export const SentenceSection: React.FC<SentenceSectionProps> = ({ bilingual, med
         <div className="space-y-8">
             {/* Bilingual Sentences */}
             {sentences.length > 0 && (
-                <div id="sentences" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <div id="sentences" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 scroll-mt-24">
                     <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                         <Quote className="w-5 h-5 text-blue-500" />
                         <h3 className="text-lg font-bold text-slate-800">双语例句 (Bilingual Sentences)</h3>
@@ -45,7 +45,7 @@ export const SentenceSection: React.FC<SentenceSectionProps> = ({ bilingual, med
 
             {/* Media Sentences */}
             {mediaSents.length > 0 && (
-                <div id="media_sents" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <div id="media_sents" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 scroll-mt-24">
                     <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                         <Volume2 className="w-5 h-5 text-teal-600" />
                         <h3 className="text-lg font-bold text-slate-800">原声例句 (Media Sentences)</h3>

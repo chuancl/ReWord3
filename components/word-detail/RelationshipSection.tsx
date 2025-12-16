@@ -25,22 +25,18 @@ export const RelationshipSection: React.FC<RelationshipSectionProps> = ({ phrs, 
         <div className="space-y-8">
             {/* Phrases */}
             {phrases.length > 0 && (
-                <div id="phrases" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <div id="phrases" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 scroll-mt-24">
                     <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                         <Layers className="w-5 h-5 text-green-600" />
                         <h3 className="text-lg font-bold text-slate-800">常用词组 (Phrases)</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {phrases.slice(0, 30).map((item, idx) => {
-                            // Extract Headword: phr.headword.l.i
                             const head = item.phr?.headword?.l?.i;
-                            
-                            // Extract Translations: Iterate trs -> tr -> l.i
                             const trs = item.phr?.trs || [];
                             const transList: string[] = [];
                             
                             trs.forEach(t => {
-                                // t.tr can be a single object or an array
                                 const trData = t.tr;
                                 if (Array.isArray(trData)) {
                                     trData.forEach(sub => {
@@ -74,7 +70,7 @@ export const RelationshipSection: React.FC<RelationshipSectionProps> = ({ phrs, 
 
             {/* Synonyms */}
             {synonyms.length > 0 && (
-                <div id="synonyms" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <div id="synonyms" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 scroll-mt-24">
                     <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                         <Share2 className="w-5 h-5 text-purple-500" />
                         <h3 className="text-lg font-bold text-slate-800">同近义词 (Synonyms)</h3>
@@ -104,7 +100,7 @@ export const RelationshipSection: React.FC<RelationshipSectionProps> = ({ phrs, 
 
             {/* Discrimination */}
             {discrims.length > 0 && (
-                <div id="discrim" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <div id="discrim" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 scroll-mt-24">
                     <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                         <Split className="w-5 h-5 text-orange-500" />
                         <h3 className="text-lg font-bold text-slate-800">词义辨析 (Discrimination)</h3>
@@ -128,7 +124,7 @@ export const RelationshipSection: React.FC<RelationshipSectionProps> = ({ phrs, 
 
             {/* Roots */}
             {roots.length > 0 && (
-                <div id="roots" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <div id="roots" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 scroll-mt-24">
                     <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                         <GitBranch className="w-5 h-5 text-rose-500" />
                         <h3 className="text-lg font-bold text-slate-800">词根词源 (Roots & Cognates)</h3>
@@ -158,7 +154,7 @@ export const RelationshipSection: React.FC<RelationshipSectionProps> = ({ phrs, 
 
             {/* Etymology */}
             {etymList.length > 0 && (
-                <div id="etym" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <div id="etym" className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 scroll-mt-24">
                     <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
                         <History className="w-5 h-5 text-amber-600" />
                         <h3 className="text-lg font-bold text-slate-800">词源典故 (Etymology)</h3>
