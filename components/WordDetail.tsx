@@ -12,6 +12,8 @@ import { PhrasesSection, SynonymsSection, DiscrimSection, RootsSection, EtymSect
 import { BilingualSentencesSection, MediaSentencesSection } from './word-detail/SentenceSection';
 import { WebTransSection, ExamsSection, WikiSection } from './word-detail/WebSection';
 import { SpecialSection } from './word-detail/SpecialSection';
+import { interactionConfigStorage } from '../utils/storage';
+import { DEFAULT_WORD_INTERACTION } from '../constants';
 
 interface WordDetailProps {
   word: string;
@@ -52,11 +54,15 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
   const [navItems, setNavItems] = useState(DEFAULT_SECTIONS);
   const [draggedNavIndex, setDraggedNavIndex] = useState<number | null>(null);
 
+  // Interaction Config for Web Link
+  const [interactionConfig, setInteractionConfig] = useState(DEFAULT_WORD_INTERACTION);
+
   // Intersection Observer
   const observer = useRef<IntersectionObserver | null>(null);
 
-  // Load Nav Order from Storage
+  // Load Configs
   useEffect(() => {
+      // Nav Order
       const savedOrder = localStorage.getItem('context-lingo-nav-order');
       if (savedOrder) {
           try {
@@ -71,6 +77,9 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
               console.error("Failed to load nav order", e);
           }
       }
+
+      // Interaction Config (for Online Dictionary URL)
+      interactionConfigStorage.getValue().then(setInteractionConfig);
   }, []);
 
   useEffect(() => {
@@ -92,6 +101,14 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
 
     if (word) fetchData();
   }, [word]);
+
+  // Compute Web URL
+  const webUrl = useMemo(() => {
+      if (interactionConfig.onlineDictUrl) {
+          return interactionConfig.onlineDictUrl.replace(/{word}/g, encodeURIComponent(word));
+      }
+      return `https://dict.youdao.com/result?word=${encodeURIComponent(word)}&lang=en`;
+  }, [interactionConfig.onlineDictUrl, word]);
 
   // Helper to determine which sections have data
   const hasData = (id: string) => {
@@ -250,7 +267,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
           </button>
           <h1 className="text-xl font-bold text-slate-800 capitalize truncate font-serif">{word}</h1>
           <div className="ml-auto flex items-center gap-3">
-              <a href={`https://dict.youdao.com/result?word=${word}&lang=en`} target="_blank" rel="noreferrer" className="text-xs text-blue-600 font-medium hover:underline flex items-center bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 transition">
+              <a href={webUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 font-medium hover:underline flex items-center bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 transition">
                   <Globe className="w-3.5 h-3.5 mr-1.5" /> 网页版
               </a>
           </div>
