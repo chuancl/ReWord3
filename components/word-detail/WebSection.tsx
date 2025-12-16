@@ -144,7 +144,10 @@ export const WebTransSection: React.FC<{ webTrans?: WebTransData }> = ({ webTran
                                 <div key={tIdx} className="flex flex-col gap-1.5 pl-3 border-l-2 border-slate-200/60 hover:border-cyan-300 transition-colors">
                                     {/* Meaning & Field Tag */}
                                     <div className="flex items-start gap-2 flex-wrap">
-                                        <span className="text-sm font-medium text-slate-700 leading-relaxed">{t.value}</span>
+                                        <span 
+                                            className="text-sm font-medium text-slate-700 leading-relaxed" 
+                                            dangerouslySetInnerHTML={{ __html: t.value || '' }}
+                                        />
                                         {/* Field Tag (e.g. [计算机]) */}
                                         {t.cls?.cl?.[0] && (
                                             <span className="shrink-0 text-[10px] text-cyan-600 bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-100 flex items-center h-fit mt-0.5">
@@ -156,9 +159,10 @@ export const WebTransSection: React.FC<{ webTrans?: WebTransData }> = ({ webTran
                                     
                                     {/* Summary / Example */}
                                     {t.summary?.line?.[0] && (
-                                        <p className="text-xs text-slate-500 italic bg-white p-2 rounded border border-slate-100/50">
-                                            {t.summary.line[0]}
-                                        </p>
+                                        <p 
+                                            className="text-xs text-slate-500 italic bg-white p-2 rounded border border-slate-100/50"
+                                            dangerouslySetInnerHTML={{ __html: t.summary.line[0] || '' }}
+                                        />
                                     )}
                                 </div>
                             ))}
