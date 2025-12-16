@@ -28,8 +28,8 @@ export const ExpandEcSection: React.FC<ExpandEcSectionProps> = ({ expandEc }) =>
                                     <div className="font-medium text-slate-800">{t.trans}</div>
                                     {t.content?.sents?.map((s, sIdx) => (
                                         <div key={sIdx} className="mt-1.5 pl-3 border-l-2 border-slate-200 text-sm text-slate-600 group-hover:border-emerald-300 transition-colors">
-                                            <p>{s.sentOrig}</p>
-                                            <p className="text-slate-400 text-xs">{s.sentTrans}</p>
+                                            <p dangerouslySetInnerHTML={{ __html: s.sentOrig || '' }} />
+                                            <p className="text-slate-400 text-xs mt-0.5" dangerouslySetInnerHTML={{ __html: s.sentTrans || '' }} />
                                         </div>
                                     ))}
                                 </li>
