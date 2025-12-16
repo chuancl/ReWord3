@@ -243,7 +243,10 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
                                     <div className="space-y-6 py-2">
                                         {activeMusic.lyricList.map((line, lIdx) => (
                                             <div key={lIdx} className="text-center group">
-                                                <p className="font-serif text-slate-800 text-base leading-relaxed group-hover:text-pink-600 transition-colors">{line.lyric}</p>
+                                                <p 
+                                                    className="font-serif text-slate-800 text-base leading-relaxed group-hover:text-pink-600 transition-colors"
+                                                    dangerouslySetInnerHTML={{ __html: line.lyric || '' }}
+                                                />
                                                 {line.lyricTranslation && <p className="text-sm text-slate-500 mt-1 group-hover:text-slate-600">{line.lyricTranslation}</p>}
                                             </div>
                                         ))}
