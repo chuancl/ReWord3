@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { ArrowLeft, BookOpen, Star, Layers, Share2, Quote, GitBranch, Globe, Loader2, History, Split, Hash, Image as ImageIcon, Youtube, Music, Tv, FileQuestion, Network, Volume2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Star, Layers, Share2, Quote, GitBranch, Globe, Loader2, History, Split, Hash, Image as ImageIcon, Youtube, Music, Tv, FileQuestion, Network, Volume2, Briefcase } from 'lucide-react';
 import { YoudaoResponse } from '../types/youdao';
 import { BasicInfo } from './word-detail/BasicInfo';
 import { ImageGallery } from './word-detail/ImageGallery';
@@ -11,6 +11,7 @@ import { MediaSection } from './word-detail/MediaSection';
 import { RelationshipSection } from './word-detail/RelationshipSection';
 import { SentenceSection } from './word-detail/SentenceSection';
 import { WebTransSection, ExamsSection, WikiSection } from './word-detail/WebSection';
+import { SpecialSection } from './word-detail/SpecialSection';
 
 interface WordDetailProps {
   word: string;
@@ -22,6 +23,7 @@ const SECTIONS = [
   { id: 'basic', label: '基础释义', icon: Hash },
   { id: 'images', label: '单词配图', icon: ImageIcon },
   { id: 'expand_ec', label: '扩展释义', icon: BookOpen },
+  { id: 'special', label: '专业释义', icon: Briefcase }, // Added Special
   { id: 'collins_primary', label: '柯林斯 (新)', icon: Star },
   { id: 'collins_old', label: '柯林斯 (旧)', icon: Star },
   { id: 'ee', label: '英英释义', icon: Globe },
@@ -135,6 +137,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
           case 'basic': return !!data.ec;
           case 'images': return (data.pic_dict?.pic?.length || 0) > 0;
           case 'expand_ec': return (data.expand_ec?.word?.length || 0) > 0;
+          case 'special': return (data.special?.entries?.length || 0) > 0; // Check Special
           case 'collins_primary': return (data.collins_primary?.gramcat?.length || 0) > 0;
           case 'collins_old': return (data.collins?.collins_entries?.length || 0) > 0;
           case 'ee': return (data.ee?.word?.trs?.length || 0) > 0;
@@ -147,7 +150,6 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
           case 'etym': return !!(data.etym?.etyms?.zh || data.etym?.etyms?.en);
           case 'sentences': return (data.blng_sents_part?.["sentence-pair"]?.length || 0) > 0;
           case 'media_sents': return (data.media_sents_part?.sent?.length || 0) > 0;
-          // Updated Exams Check: Look for examInfo OR pastExamSents OR idiomatic phrases
           case 'exams': return !!(data.individual?.examInfo?.questionTypeInfo?.length || data.individual?.pastExamSents?.length || data.individual?.idiomatic?.length);
           case 'web_trans': return (data.web_trans?.["web-translation"]?.length || (data.web_trans as any)?.["web_translation"]?.length || 0) > 0;
           case 'wiki': return (data.wikipedia_digest?.summarys?.length || 0) > 0;
@@ -213,6 +215,12 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                   {hasData('expand_ec') && (
                       <div id="expand_ec" ref={el => sectionRefs.current['expand_ec'] = el}>
                           <ExpandEcSection expandEc={data.expand_ec} />
+                      </div>
+                  )}
+
+                  {hasData('special') && (
+                      <div id="special" ref={el => sectionRefs.current['special'] = el}>
+                          <SpecialSection special={data.special} />
                       </div>
                   )}
 

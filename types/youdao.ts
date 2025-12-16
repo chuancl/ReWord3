@@ -192,8 +192,28 @@ export interface IndividualData {
     idiomatic?: IdiomaticItem[];
 }
 
-// --- 12. Special (Stats) ---
-export interface SpecialData { summary?: { sources?: { [key:string]: { hits: number } } }; co_list?: { gene?: string; entries?: { k?: string; v?: string }[] }[]; }
+// --- 12. Special (Stats & Specialized Meanings) ---
+export interface SpecialTrItem {
+    tr?: {
+        engSent?: string;
+        chnSent?: string;
+        nat?: string;
+        docTitle?: string;
+    }
+}
+
+export interface SpecialEntryItem {
+    entry?: {
+        major?: string;
+        trs?: SpecialTrItem[];
+    }
+}
+
+export interface SpecialData { 
+    summary?: { sources?: { [key:string]: { hits: number } } }; 
+    co_list?: { gene?: string; entries?: { k?: string; v?: string }[] }[];
+    entries?: SpecialEntryItem[]; // Added specialized entries
+}
 
 // Root Response
 export interface YoudaoResponse {
