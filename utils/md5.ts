@@ -1,3 +1,4 @@
+
 // Minimal MD5 implementation
 export function md5(string: string): string {
     function RotateLeft(lValue: number, iShiftBits: number) {
@@ -148,4 +149,10 @@ export function md5(string: string): string {
         c = II(c, d, a, b, x[k + 2], S43, 0x2AD7D2BB);
         b = II(b, c, d, a, x[k + 9], S44, 0xEB86D391);
         a = AddUnsigned(a, AA);
-        b = AddUnsigned(b
+        b = AddUnsigned(b, BB);
+        c = AddUnsigned(c, CC);
+        d = AddUnsigned(d, DD);
+    }
+    var temp = WordToHex(a) + WordToHex(b) + WordToHex(c) + WordToHex(d);
+    return temp.toLowerCase();
+}
