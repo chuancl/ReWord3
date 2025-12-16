@@ -316,8 +316,46 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
                 {musicList.length > 1 && (<><button onClick={handlePrev} disabled={activeMusicIndex === 0} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 disabled:cursor-not-allowed transition z-40 backdrop-blur-sm"><ArrowLeft className="w-6 h-6" /></button><button onClick={handleNext} disabled={activeMusicIndex === musicList.length - 1} className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 disabled:cursor-not-allowed transition z-40 backdrop-blur-sm"><ArrowRight className="w-6 h-6" /></button></>)}
             </div>
 
+            {/* --- Added Lyrics Preview Section (Restored for Main Card View) --- */}
+            <div className="px-6 py-6 min-h-[150px] max-h-[300px] overflow-y-auto custom-scrollbar border-t border-slate-50 bg-slate-50/30">
+                <div className="text-center space-y-4">
+                     <div className="mb-4">
+                        <h4 className="text-lg font-bold text-slate-800">{activeMusic.songName || activeMusic.song_name || 'Unknown Song'}</h4>
+                        <div className="text-xs text-pink-500 font-medium flex items-center justify-center mt-1">
+                            <Mic2 className="w-3 h-3 mr-1" /> {activeMusic.singer || 'Unknown Artist'}
+                        </div>
+                     </div>
+
+                     {activeMusic.lyricList && activeMusic.lyricList.length > 0 ? (
+                         <div className="space-y-4">
+                            {activeMusic.lyricList.map((line, i) => (
+                                <div key={i}>
+                                    <p className="text-slate-700 font-medium leading-relaxed font-serif" dangerouslySetInnerHTML={{__html: line.lyric || ''}} />
+                                    {line.lyricTranslation && <p className="text-xs text-slate-500 mt-0.5">{line.lyricTranslation}</p>}
+                                </div>
+                            ))}
+                         </div>
+                     ) : (activeMusic.lyric || activeMusic.sents) ? (
+                         <div className="text-slate-700 text-sm leading-relaxed font-serif whitespace-pre-wrap">
+                             {activeMusic.lyric ? (
+                                 <div dangerouslySetInnerHTML={{__html: activeMusic.lyric}} />
+                             ) : (
+                                 activeMusic.sents?.map((s: any, i: number) => (
+                                     <div key={i} className="mb-3">
+                                         <p className="font-medium">"{s.eng}"</p>
+                                         <p className="text-xs text-slate-500 mt-0.5">{s.chn}</p>
+                                     </div>
+                                 ))
+                             )}
+                         </div>
+                     ) : (
+                         <p className="text-slate-400 text-xs italic py-4">暂无歌词预览</p>
+                     )}
+                </div>
+            </div>
+
             {/* --- Mini Player Bar (Embedded) --- */}
-            <div className="bg-white/80 backdrop-blur-md border-t border-slate-100 p-4">
+            <div className="bg-white/80 backdrop-blur-md border-t border-slate-100 p-4 sticky bottom-0 z-20">
                 <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-lg bg-slate-200 overflow-hidden shrink-0 border border-slate-200 ${isPlaying ? 'animate-spin-slow' : ''}`} style={{animationDuration: '10s'}}>
                         {(activeMusic.coverImg || activeMusic.cover) ? <img src={activeMusic.coverImg || activeMusic.cover} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-pink-100 flex items-center justify-center"><Music className="w-6 h-6 text-pink-300"/></div>}
