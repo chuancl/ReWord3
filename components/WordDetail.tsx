@@ -5,11 +5,11 @@ import { YoudaoResponse } from '../types/youdao';
 import { BasicInfo } from './word-detail/BasicInfo';
 import { ImageGallery } from './word-detail/ImageGallery';
 import { ExpandEcSection } from './word-detail/ExpandEcSection';
-import { CollinsSection } from './word-detail/CollinsSection';
+import { CollinsPrimarySection, CollinsOldSection } from './word-detail/CollinsSection';
 import { EeSection } from './word-detail/EeSection';
-import { MediaSection } from './word-detail/MediaSection';
-import { RelationshipSection } from './word-detail/RelationshipSection';
-import { SentenceSection } from './word-detail/SentenceSection';
+import { VideoLectureSection, VideoSceneSection, MusicSection } from './word-detail/MediaSection';
+import { PhrasesSection, SynonymsSection, DiscrimSection, RootsSection, EtymSection } from './word-detail/RelationshipSection';
+import { BilingualSentencesSection, MediaSentencesSection } from './word-detail/SentenceSection';
 import { WebTransSection, ExamsSection, WikiSection } from './word-detail/WebSection';
 import { SpecialSection } from './word-detail/SpecialSection';
 
@@ -125,6 +125,34 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
   const activeSectionsList = useMemo(() => {
       return navItems.filter(s => hasData(s.id));
   }, [navItems, data]);
+
+  // Render Mapping Logic
+  const renderSectionContent = (id: string) => {
+      if (!data) return null;
+      switch(id) {
+          case 'basic': return <BasicInfo word={word} ec={data.ec} />;
+          case 'images': return <ImageGallery word={word} picDict={data.pic_dict} />;
+          case 'expand_ec': return <ExpandEcSection expandEc={data.expand_ec} />;
+          case 'special': return <SpecialSection special={data.special} />;
+          case 'collins_primary': return <CollinsPrimarySection collinsPrimary={data.collins_primary} oldStar={data.collins?.collins_entries?.[0]?.star} />;
+          case 'collins_old': return <CollinsOldSection collinsOld={data.collins} word={word} />;
+          case 'ee': return <EeSection ee={data.ee} />;
+          case 'video_lecture': return <VideoLectureSection wordVideos={data.word_video} />;
+          case 'video_scene': return <VideoSceneSection videoSents={data.video_sents} />;
+          case 'music': return <MusicSection musicSents={data.music_sents} />;
+          case 'phrases': return <PhrasesSection phrs={data.phrs} />;
+          case 'synonyms': return <SynonymsSection syno={data.syno} />;
+          case 'discrim': return <DiscrimSection discrim={data.discrim} />;
+          case 'roots': return <RootsSection relWord={data.rel_word} />;
+          case 'etym': return <EtymSection etym={data.etym} />;
+          case 'sentences': return <BilingualSentencesSection bilingual={data.blng_sents_part} />;
+          case 'media_sents': return <MediaSentencesSection media={data.media_sents_part} />;
+          case 'exams': return <ExamsSection individual={data.individual} />;
+          case 'web_trans': return <WebTransSection webTrans={data.web_trans} />;
+          case 'wiki': return <WikiSection wiki={data.wikipedia_digest} />;
+          default: return null;
+      }
+  };
 
   // Scroll Spy Logic - Adjusted to find elements by ID directly
   useEffect(() => {
@@ -263,102 +291,12 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
 
               {/* 3. Main Content Area */}
               <div className="flex-1 w-full space-y-8 min-w-0">
-                  
-                  {/* Basic Info */}
-                  <div id="basic" className="scroll-mt-24">
-                      <BasicInfo word={word} ec={data.ec} />
-                  </div>
-
-                  {/* Images */}
-                  {hasData('images') && (
-                      <div id="images" className="scroll-mt-24">
-                          <ImageGallery word={word} picDict={data.pic_dict} />
+                  {/* Dynamic Section Rendering based on Sort Order */}
+                  {activeSectionsList.map(section => (
+                      <div id={section.id} key={section.id} className="scroll-mt-24">
+                          {renderSectionContent(section.id)}
                       </div>
-                  )}
-
-                  {/* Expand EC */}
-                  {hasData('expand_ec') && (
-                      <div id="expand_ec" className="scroll-mt-24">
-                          <ExpandEcSection expandEc={data.expand_ec} />
-                      </div>
-                  )}
-
-                  {/* Special */}
-                  {hasData('special') && (
-                      <div id="special" className="scroll-mt-24">
-                          <SpecialSection special={data.special} />
-                      </div>
-                  )}
-
-                  {/* Collins */}
-                  {(hasData('collins_primary') || hasData('collins_old')) && (
-                      <CollinsSection word={word} collinsPrimary={data.collins_primary} collinsOld={data.collins} />
-                  )}
-
-                  {/* EE */}
-                  {hasData('ee') && (
-                      <div id="ee" className="scroll-mt-24">
-                          <EeSection ee={data.ee} />
-                      </div>
-                  )}
-
-                  {/* Video Lectures */}
-                  {hasData('video_lecture') && (
-                      <div id="video_lecture" className="scroll-mt-24">
-                          <MediaSection wordVideos={data.word_video} />
-                      </div>
-                  )}
-
-                  {/* Video Scenes */}
-                  {hasData('video_scene') && (
-                      <div id="video_scene" className="scroll-mt-24">
-                          <MediaSection videoSents={data.video_sents} />
-                      </div>
-                  )}
-
-                  {/* Music */}
-                  {hasData('music') && (
-                      <div id="music" className="scroll-mt-24">
-                          <MediaSection musicSents={data.music_sents} />
-                      </div>
-                  )}
-
-                  {/* Relationships (Phrases, Synonyms, Discrim, Roots, Etym) */}
-                  {(hasData('phrases') || hasData('synonyms') || hasData('discrim') || hasData('roots') || hasData('etym')) && (
-                      <RelationshipSection 
-                          phrs={data.phrs} 
-                          syno={data.syno} 
-                          discrim={data.discrim}
-                          relWord={data.rel_word}
-                          etym={data.etym}
-                      />
-                  )}
-
-                  {/* Sentences (Bilingual & Media) */}
-                  {(hasData('sentences') || hasData('media_sents')) && (
-                      <SentenceSection bilingual={data.blng_sents_part} media={data.media_sents_part} />
-                  )}
-
-                  {/* Exams */}
-                  {hasData('exams') && (
-                      <div id="exams" className="scroll-mt-24">
-                          <ExamsSection individual={data.individual} />
-                      </div>
-                  )}
-
-                  {/* Web Trans */}
-                  {hasData('web_trans') && (
-                      <div id="web_trans" className="scroll-mt-24">
-                          <WebTransSection webTrans={data.web_trans} />
-                      </div>
-                  )}
-
-                  {/* Wiki */}
-                  {hasData('wiki') && (
-                      <div id="wiki" className="scroll-mt-24">
-                          <WikiSection wiki={data.wikipedia_digest} />
-                      </div>
-                  )}
+                  ))}
 
                   <div className="text-center py-8 text-slate-400 text-xs">
                       © ContextLingo - Data Sources: Youdao, Collins, Wikipedia
