@@ -1,9 +1,9 @@
 
-import React from 'react';
-import { Youtube, Tv, Music, Volume2, ExternalLink, PlayCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Youtube, Tv, Music, Volume2, ExternalLink, PlayCircle, Disc, Mic2, PauseCircle } from 'lucide-react';
 import { WordVideoData, VideoSentsData, MusicSentsData } from '../../types/youdao';
 import { SourceBadge } from './SourceBadge';
-import { playUrl } from '../../utils/audio';
+import { playUrl, stopAudio } from '../../utils/audio';
 
 interface MediaSectionProps {
     wordVideos?: WordVideoData;
@@ -14,11 +14,32 @@ interface MediaSectionProps {
 export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSents, musicSents }) => {
     const videos = wordVideos?.word_videos || [];
     
-    // Enhanced data extraction: check for 'video_sent' (standard) or fallback to 'sent'
+    // Enhanced data extraction
     const realVideos = videoSents?.video_sent || (videoSents as any)?.sent || [];
     
-    // Enhanced data extraction: check for 'sents_data' (standard) or fallback to 'music_sent' or 'songs'
+    // Music data extraction strategy
     const music = musicSents?.sents_data || musicSents?.music_sent || (musicSents as any)?.songs || [];
+
+    // Local state to track which music item is currently "active" in UI (for play icon toggle)
+    // Note: Actual audio state is handled globally in utils/audio.ts, this is just for UI feedback
+    const [playingMusicIndex, setPlayingMusicIndex] = useState<number | null>(null);
+
+    const handlePlayMusic = async (url: string, index: number) => {
+        if (playingMusicIndex === index) {
+            // Toggle off
+            stopAudio();
+            setPlayingMusicIndex(null);
+        } else {
+            // Play new
+            setPlayingMusicIndex(index);
+            try {
+                await playUrl(url);
+                setPlayingMusicIndex(null); // Reset icon when done
+            } catch (e) {
+                setPlayingMusicIndex(null);
+            }
+        }
+    };
 
     return (
         <div className="space-y-8">
@@ -87,59 +108,88 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                         <Music className="w-5 h-5 text-pink-500" />
                         <h3 className="text-lg font-bold text-slate-800">原声歌曲</h3>
                     </div>
-                    <div className="space-y-4">
-                        {music.map((m: any, idx: number) => (
-                            <div key={idx} className="flex gap-4 items-start bg-pink-50/30 p-4 rounded-xl border border-pink-100 group">
-                                <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center shrink-0 mt-1">
-                                    {m.cover ? (
-                                        <img src={m.cover} className="w-full h-full rounded-full object-cover opacity-90" alt={m.song_name} />
-                                    ) : (
-                                        <Music className="w-6 h-6 text-pink-500" />
-                                    )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    {/* Song Metadata Row */}
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-slate-800 text-sm">{m.song_name || 'Unknown Song'}</span>
-                                            {m.singer && <span className="text-xs text-slate-500">{m.singer}</span>}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {music.map((m: any, idx: number) => {
+                            // Determine display URLs
+                            const snippetUrl = m.playUrl; 
+                            const fullUrl = m.link || m.url;
+
+                            return (
+                                <div key={idx} className="flex flex-col bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-pink-200 transition group">
+                                    {/* Top: Metadata Row */}
+                                    <div className="p-4 flex items-center gap-4 bg-slate-50/50">
+                                        <div className="relative shrink-0">
+                                            <div className={`w-14 h-14 rounded-full border-2 border-white shadow-sm overflow-hidden flex items-center justify-center bg-pink-100 ${playingMusicIndex === idx ? 'animate-spin-slow' : ''}`}>
+                                                {m.cover ? (
+                                                    <img src={m.cover} className="w-full h-full object-cover" alt={m.song_name} />
+                                                ) : (
+                                                    <Disc className="w-6 h-6 text-pink-400" />
+                                                )}
+                                            </div>
+                                            {/* Status Dot */}
+                                            {playingMusicIndex === idx && (
+                                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-pink-500 rounded-full border-2 border-white flex items-center justify-center">
+                                                    <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            {m.playUrl && (
-                                                <button 
-                                                    onClick={() => playUrl(m.playUrl)}
-                                                    className="p-1.5 bg-pink-100 text-pink-600 rounded-full hover:bg-pink-200 transition"
-                                                    title="播放片段 (Preview Snippet)"
-                                                >
-                                                    <PlayCircle className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                            {(m.link || m.url) && (
-                                                <a 
-                                                    href={m.link || m.url} 
-                                                    target="_blank" 
-                                                    rel="noreferrer" 
-                                                    className="text-pink-500 hover:text-pink-700 flex items-center text-xs font-medium px-2 py-1 rounded hover:bg-pink-50 transition"
-                                                >
-                                                    <ExternalLink className="w-3 h-3 mr-1" />
-                                                    完整版
-                                                </a>
-                                            )}
+                                        
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-slate-800 truncate text-sm" title={m.song_name}>{m.song_name || 'Unknown Song'}</h4>
+                                            <div className="flex items-center text-xs text-slate-500 mt-1">
+                                                <Mic2 className="w-3 h-3 mr-1 text-slate-400"/>
+                                                <span className="truncate">{m.singer || 'Unknown Artist'}</span>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Lyrics Snippets */}
-                                    {m.sents?.map((s: any, sIdx: number) => (
-                                        <div key={sIdx} className="mb-2 last:mb-0">
-                                            <p className="font-serif text-slate-700 italic text-base leading-relaxed pl-2 border-l-2 border-pink-200">
-                                                "{s.eng}"
-                                            </p>
-                                            {s.chn && <p className="text-xs text-slate-400 mt-1 pl-2">{s.chn}</p>}
-                                        </div>
-                                    ))}
+                                    {/* Middle: Lyrics Snippet */}
+                                    <div className="px-4 py-3 flex-1 border-t border-b border-slate-50 bg-white">
+                                        {m.sents?.map((s: any, sIdx: number) => (
+                                            <div key={sIdx} className="space-y-1">
+                                                <p className="font-serif italic text-slate-700 text-sm leading-relaxed border-l-2 border-pink-300 pl-3">
+                                                    "{s.eng}"
+                                                </p>
+                                                {s.chn && <p className="text-xs text-slate-400 pl-3">{s.chn}</p>}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Bottom: Actions */}
+                                    <div className="px-4 py-3 flex items-center justify-between bg-slate-50/80">
+                                        {/* Play Snippet */}
+                                        {snippetUrl ? (
+                                            <button 
+                                                onClick={() => handlePlayMusic(snippetUrl, idx)}
+                                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                                                    playingMusicIndex === idx 
+                                                    ? 'bg-pink-100 text-pink-600 ring-1 ring-pink-200' 
+                                                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200'
+                                                }`}
+                                            >
+                                                {playingMusicIndex === idx ? <PauseCircle className="w-4 h-4"/> : <PlayCircle className="w-4 h-4"/>}
+                                                {playingMusicIndex === idx ? 'Playing...' : '试听片段'}
+                                            </button>
+                                        ) : (
+                                            <span className="text-xs text-slate-300 select-none">无试听</span>
+                                        )}
+
+                                        {/* Full Link */}
+                                        {fullUrl && (
+                                            <a 
+                                                href={fullUrl} 
+                                                target="_blank" 
+                                                rel="noreferrer" 
+                                                className="text-xs text-slate-400 hover:text-pink-600 flex items-center transition-colors"
+                                                title="跳转到完整歌曲"
+                                            >
+                                                完整版 <ExternalLink className="w-3 h-3 ml-1" />
+                                            </a>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                     <SourceBadge source="music_sents" />
                 </div>

@@ -1,6 +1,7 @@
 
 let cachedVoices: SpeechSynthesisVoice[] = [];
 let isLoaded = false;
+let currentAudio: HTMLAudioElement | null = null; // Track currently playing HTML5 Audio
 
 /**
  * Preloads voices as early as possible.
@@ -21,12 +22,19 @@ export const preloadVoices = () => {
 };
 
 /**
- * Stops all currently playing audio.
+ * Stops all currently playing audio (TTS and HTML5 Audio).
  */
 export const stopAudio = () => {
+  // 1. Stop TTS
   const synth = window.speechSynthesis;
   synth.cancel();
-  // Also stop any HTML audio elements if we were tracking them globally
+  
+  // 2. Stop HTML5 Audio
+  if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0; // Reset position
+      currentAudio = null;
+  }
 };
 
 export const unlockAudio = () => {
@@ -54,16 +62,33 @@ const waitForVoices = (): Promise<SpeechSynthesisVoice[]> => {
 
 /**
  * Plays arbitrary URL audio with a promise wrapper.
+ * Stops any previously playing audio.
  */
 export const playUrl = (url: string, playbackRate: number = 1.0): Promise<void> => {
+    stopAudio(); // Stop overlapping audio
+
     return new Promise((resolve, reject) => {
         const audio = new Audio(url);
+        currentAudio = audio; // Register as current
+        
         audio.playbackRate = playbackRate;
-        audio.onended = () => resolve();
-        audio.onerror = (e) => reject(e);
+        
+        audio.onended = () => {
+            if (currentAudio === audio) currentAudio = null;
+            resolve();
+        };
+        
+        audio.onerror = (e) => {
+            if (currentAudio === audio) currentAudio = null;
+            reject(e);
+        };
+        
         const playPromise = audio.play();
         if (playPromise !== undefined) {
-            playPromise.catch(error => reject(error));
+            playPromise.catch(error => {
+                if (currentAudio === audio) currentAudio = null;
+                reject(error);
+            });
         }
     });
 };
@@ -73,8 +98,9 @@ export const playUrl = (url: string, playbackRate: number = 1.0): Promise<void> 
  */
 export const playTextToSpeech = async (text: string, accent: 'US' | 'UK' = 'US', rate: number = 1.0, repeat: number = 1) => {
   if (!text || repeat <= 0) return;
+  stopAudio(); // Ensure other audio stops
+
   const synth = window.speechSynthesis;
-  synth.cancel();
   if (synth.paused) synth.resume();
 
   try {
@@ -116,12 +142,8 @@ export const playWordAudio = async (text: string, accent: 'US' | 'UK' = 'US', sp
 
 /**
  * Smart Sentence Player.
- * 1. Explicit URL (if provided, though we are deprecating stored URLs)
- * 2. Youdao dictvoice (handles sentences well)
- * 3. Fallback to TTS.
  */
 export const playSentenceAudio = async (text: string, explicitUrl?: string, accent: 'US' | 'UK' = 'US', speed: number = 1.0) => {
-    // If an explicit URL is provided (e.g. legacy data), try it first
     if (explicitUrl) {
         try {
             await playUrl(explicitUrl, speed);
