@@ -38,25 +38,35 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
             return;
         }
 
-        let vttText = "WEBVTT\n\n";
-        // Default duration for short clips (1 minute) to ensure subtitle stays visible
-        const timeRange = "00:00.000 --> 00:59.000";
+        let vttContent = "WEBVTT\n\n";
         let hasContent = false;
 
-        if (activeVideo.sents && activeVideo.sents.length > 0) {
-            // Combine all sentences into one block since we lack timestamps
+        if (activeVideo.subtitle_srt) {
+            // Case 1: Raw SRT content available.
+            // We must NOT wrap this in another cue block. Instead, we convert it to VTT format.
+            
+            // 1. Convert SRT timestamps (00:00:00,000) to VTT (00:00:00.000)
+            let cleanSrt = activeVideo.subtitle_srt.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+            
+            // 2. Remove HTML-like tags (e.g. <font color=...>) to show only text
+            cleanSrt = cleanSrt.replace(/<[^>]+>/g, '');
+            
+            vttContent += cleanSrt;
+            hasContent = true;
+        } else if (activeVideo.sents && activeVideo.sents.length > 0) {
+            // Case 2: Bilingual sentences without timestamps.
+            // Create a single static caption block covering a default duration (e.g., 5 mins)
+            // so the text is always visible during the short clip.
             const combinedText = activeVideo.sents.map((s: any) => 
                 `${s.eng || ''}\n${s.chn || ''}`
             ).join('\n\n');
-            vttText += `1\n${timeRange}\n${combinedText}`;
-            hasContent = true;
-        } else if (activeVideo.subtitle_srt) {
-            vttText += `1\n${timeRange}\n${activeVideo.subtitle_srt}`;
+            
+            vttContent += `1\n00:00.000 --> 05:00.000\n${combinedText}`;
             hasContent = true;
         }
 
         if (hasContent) {
-            const blob = new Blob([vttText], { type: 'text/vtt' });
+            const blob = new Blob([vttContent], { type: 'text/vtt' });
             const url = URL.createObjectURL(blob);
             setSubtitleTrackUrl(url);
             return () => URL.revokeObjectURL(url);
@@ -212,6 +222,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                                 {/* Use Native Subtitles Track */}
                                                 {subtitleTrackUrl && (
                                                     <track 
+                                                        key={subtitleTrackUrl} // Key forces re-mount on change
                                                         default
                                                         kind="captions" 
                                                         srcLang="en" 
@@ -249,7 +260,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
 
                                         {/* --- Static Subtitle Preview (Only when NOT playing) --- */}
                                         {isActive && !isVideoPlaying && (
-                                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+                                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none">
                                                 <div className="text-center">
                                                     {v.sents && v.sents.length > 0 ? (
                                                         v.sents.map((s: any, idx: number) => (
@@ -265,8 +276,9 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                                                             </div>
                                                         ))
                                                     ) : v.subtitle_srt ? (
+                                                        // Show cleaned preview (remove timestamps and tags for preview card too)
                                                         <p className="text-white text-sm font-medium drop-shadow-md line-clamp-3">
-                                                            {v.subtitle_srt}
+                                                            {v.subtitle_srt.replace(/(\d{2}:\d{2}:\d{2},\d{3})|(\d+\s+)|(-->)/g, '').replace(/<[^>]+>/g, '')}
                                                         </p>
                                                     ) : null}
                                                 </div>
@@ -448,7 +460,7 @@ export const MediaSection: React.FC<MediaSectionProps> = ({ wordVideos, videoSen
                         )}
                     </div>
 
-                    {/* Info Panel  */}
+                    {/* Info Panel */}
                     <div className="bg-white p-6 md:p-8 min-h-[200px]">
                         {activeMusic ? (
                             <div className="max-w-3xl mx-auto text-center space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-300" key={activeMusicIndex}>
