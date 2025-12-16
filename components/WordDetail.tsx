@@ -52,23 +52,45 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
   const observer = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
+    // 1. Create AbortController
+    const controller = new AbortController();
+    const signal = controller.signal;
+
     const fetchData = async () => {
       setLoading(true);
       setError('');
       try {
-        const res = await fetch(`https://dict.youdao.com/jsonapi?q=${encodeURIComponent(word)}`);
+        const res = await fetch(`https://dict.youdao.com/jsonapi?q=${encodeURIComponent(word)}`, { signal });
+        
         if (!res.ok) throw new Error('API request failed');
         const json = await res.json();
-        setData(json);
-      } catch (err) {
-        console.error(err);
-        setError('无法加载词典数据，请检查网络连接。');
+        
+        // Check if aborted before setting state (Double check)
+        if (!signal.aborted) {
+            setData(json);
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+            console.log('Fetch aborted');
+        } else {
+            console.error(err);
+            if (!signal.aborted) {
+                setError('无法加载词典数据，请检查网络连接。');
+            }
+        }
       } finally {
-        setLoading(false);
+        if (!signal.aborted) {
+            setLoading(false);
+        }
       }
     };
 
     if (word) fetchData();
+
+    // 2. Cleanup function to abort request on unmount or re-render
+    return () => {
+        controller.abort();
+    };
   }, [word]);
 
   // Scroll Spy Logic

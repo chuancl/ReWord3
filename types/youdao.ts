@@ -67,8 +67,18 @@ export interface RelItem { pos?: string; words?: { word?: string; tran?: string 
 export interface RelWordData { rels?: { rel?: RelItem; }[]; }
 
 // --- 4. Etymology ---
-export interface EtymItem { word?: string; desc?: string; source?: string; }
-export interface EtymData { etyms?: { zh?: EtymItem; en?: EtymItem }; }
+export interface EtymItem { 
+    value?: string; // Changed from 'word' based on user feedback
+    desc?: string; 
+    source?: string;
+    url?: string; 
+}
+export interface EtymData { 
+    etyms?: { 
+        zh?: EtymItem[]; // Changed to Array
+        en?: EtymItem[]; // Changed to Array
+    }; 
+}
 
 // --- 5. Sentences (Bilingual & Media) ---
 export interface SentencePair { "sentence-eng"?: string; "sentence-translation"?: string; "sentence-speech"?: string; source?: string; }
