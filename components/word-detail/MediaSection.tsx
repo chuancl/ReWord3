@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Youtube, Tv, Music, ExternalLink, PlayCircle, Disc, Mic2, PauseCircle, ArrowLeft, ArrowRight, User, Link as LinkIcon, Maximize2, X, Minimize2, Repeat, Shuffle, ListMusic, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Youtube, Tv, Music, ExternalLink, PlayCircle, Disc, Mic2, PauseCircle, ArrowLeft, ArrowRight, User, Link as LinkIcon, Maximize2, X, Minimize2, Repeat, Repeat1, Shuffle, ListMusic, ChevronDown, ChevronUp } from 'lucide-react';
 import { WordVideoData, VideoSentsData, MusicSentsData, MusicSentItem } from '../../types/youdao';
 import { SourceBadge } from './SourceBadge';
 import { playUrl, stopAudio as stopGlobalAudio } from '../../utils/audio';
@@ -175,7 +175,7 @@ export const VideoSceneSection: React.FC<{ videoSents?: VideoSentsData }> = ({ v
     );
 };
 
-// --- 3. Music Section (Enhanced with In-Place Expansion) ---
+// --- 3. Music Section (Enhanced with In-Place Expansion & Controls) ---
 export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicSents }) => {
     const musicList: MusicSentItem[] = musicSents?.sents_data || musicSents?.music_sent || (musicSents as any)?.songs || [];
     const [activeMusicIndex, setActiveMusicIndex] = useState(0);
@@ -187,11 +187,16 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
     const [currentTime, setCurrentTime] = useState(0);
     const [isExpanded, setIsExpanded] = useState(false);
     
+    // Playback Modes
+    const [isShuffle, setIsShuffle] = useState(false);
+    const [repeatMode, setRepeatMode] = useState<'off' | 'all' | 'one'>('all');
+
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const lyricsContainerRef = useRef<HTMLDivElement>(null);
+    const shouldAutoPlayRef = useRef(false);
 
+    // Initialize Audio Element
     useEffect(() => {
-        // Init audio element
         const audio = new Audio();
         audioRef.current = audio;
         
@@ -203,41 +208,105 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
             }
         };
 
-        const handleEnded = () => {
-            setIsPlaying(false);
-            setProgress(0);
-        };
-
         audio.addEventListener('timeupdate', updateProgress);
-        audio.addEventListener('ended', handleEnded);
-
         return () => {
             audio.pause();
             audio.removeEventListener('timeupdate', updateProgress);
-            audio.removeEventListener('ended', handleEnded);
         };
     }, []);
 
-    // Change source when active song changes
+    // Handle Song Change
     useEffect(() => {
         if (musicList.length > 0 && audioRef.current) {
             const url = musicList[activeMusicIndex]?.playUrl || musicList[activeMusicIndex]?.url;
             if (url) {
                 audioRef.current.src = url;
                 audioRef.current.load();
-                setIsPlaying(false);
+                
+                if (shouldAutoPlayRef.current) {
+                    audioRef.current.play().then(() => setIsPlaying(true)).catch(e => console.error("AutoPlay error", e));
+                } else {
+                    setIsPlaying(false);
+                }
                 setProgress(0);
             }
         }
     }, [activeMusicIndex, musicList]);
 
+    // Navigation Logic
+    const playNext = useCallback(() => {
+        if (!audioRef.current) return;
+        shouldAutoPlayRef.current = true;
+
+        if (repeatMode === 'one') {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play();
+            setIsPlaying(true);
+            return;
+        }
+
+        let nextIndex;
+        if (isShuffle) {
+            // Pick random index that isn't current (unless list length is 1)
+            if (musicList.length > 1) {
+                do {
+                    nextIndex = Math.floor(Math.random() * musicList.length);
+                } while (nextIndex === activeMusicIndex);
+            } else {
+                nextIndex = 0;
+            }
+        } else {
+            nextIndex = activeMusicIndex + 1;
+            if (nextIndex >= musicList.length) {
+                if (repeatMode === 'all') {
+                    nextIndex = 0; // Loop back
+                } else {
+                    // Stop at end
+                    setIsPlaying(false);
+                    shouldAutoPlayRef.current = false;
+                    return;
+                }
+            }
+        }
+        setActiveMusicIndex(nextIndex);
+    }, [activeMusicIndex, isShuffle, repeatMode, musicList.length]);
+
+    const playPrev = useCallback(() => {
+        shouldAutoPlayRef.current = true;
+        let prevIndex = activeMusicIndex - 1;
+        if (prevIndex < 0) {
+            prevIndex = musicList.length - 1; // Wrap around
+        }
+        setActiveMusicIndex(prevIndex);
+    }, [activeMusicIndex, musicList.length]);
+
+    // Listen to 'ended' event to trigger auto-next
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        const handleEnded = () => {
+            if (repeatMode === 'one') {
+                audio.currentTime = 0;
+                audio.play();
+            } else {
+                playNext();
+            }
+        };
+
+        audio.addEventListener('ended', handleEnded);
+        return () => audio.removeEventListener('ended', handleEnded);
+    }, [playNext, repeatMode]);
+
     const togglePlay = () => {
         if (audioRef.current) {
             if (isPlaying) {
                 audioRef.current.pause();
+                shouldAutoPlayRef.current = false;
             } else {
-                stopGlobalAudio(); // Stop other sounds
+                stopGlobalAudio();
                 audioRef.current.play().catch(e => console.error("Play error:", e));
+                shouldAutoPlayRef.current = true;
             }
             setIsPlaying(!isPlaying);
         }
@@ -251,12 +320,20 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
         }
     };
 
+    const toggleShuffle = () => setIsShuffle(!isShuffle);
+    
+    const toggleRepeat = () => {
+        if (repeatMode === 'off') setRepeatMode('all');
+        else if (repeatMode === 'all') setRepeatMode('one');
+        else setRepeatMode('off');
+    };
+
     if (musicList.length === 0) return null;
 
     const activeMusic = musicList[activeMusicIndex];
 
-    const handlePrev = (e?: React.MouseEvent) => { e?.stopPropagation(); setActiveMusicIndex(p => Math.max(0, p - 1)); };
-    const handleNext = (e?: React.MouseEvent) => { e?.stopPropagation(); setActiveMusicIndex(p => Math.min(musicList.length - 1, p + 1)); };
+    const handleCardPrev = (e?: React.MouseEvent) => { e?.stopPropagation(); playPrev(); };
+    const handleCardNext = (e?: React.MouseEvent) => { e?.stopPropagation(); playNext(); };
 
     // Helper for formatting time
     const formatTime = (time: number) => {
@@ -278,10 +355,10 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
     }, [progress, isExpanded, isPlaying]);
 
     return (
-        <div className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative transition-all duration-500 ease-in-out ${isExpanded ? 'min-h-[600px] bg-slate-900 border-slate-800' : ''}`}>
-            {/* Header (Always Visible, adapts to mode) */}
-            <div className={`flex items-center gap-2 px-8 py-5 border-b transition-colors duration-300 ${isExpanded ? 'border-white/10 bg-slate-900' : 'border-slate-100 bg-pink-50/30'}`}>
-                <Music className={`w-5 h-5 ${isExpanded ? 'text-pink-400' : 'text-pink-500'}`} />
+        <div className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative transition-all duration-500 ease-in-out ${isExpanded ? 'min-h-[600px] bg-slate-950 border-slate-900' : ''}`}>
+            {/* Header */}
+            <div className={`flex items-center gap-2 px-8 py-5 border-b transition-colors duration-300 ${isExpanded ? 'border-white/10 bg-slate-950' : 'border-slate-100 bg-pink-50/30'}`}>
+                <Music className={`w-5 h-5 ${isExpanded ? 'text-pink-500' : 'text-pink-500'}`} />
                 <h3 className={`text-lg font-bold transition-colors ${isExpanded ? 'text-white' : 'text-slate-800'}`}>原声歌曲</h3>
                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full ml-auto transition-colors ${isExpanded ? 'text-pink-300 bg-white/10' : 'text-pink-400 bg-pink-50'}`}>
                     {activeMusicIndex + 1} / {musicList.length}
@@ -292,7 +369,7 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
                         className="ml-3 p-1.5 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition"
                         title="收起播放器"
                     >
-                        <ChevronDown className="w-5 h-5" />
+                        <ChevronUp className="w-5 h-5" />
                     </button>
                 )}
             </div>
@@ -326,7 +403,7 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
                                 </div>
                             );
                         })}
-                        {musicList.length > 1 && (<><button onClick={handlePrev} disabled={activeMusicIndex === 0} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 disabled:cursor-not-allowed transition z-40 backdrop-blur-sm"><ArrowLeft className="w-6 h-6" /></button><button onClick={handleNext} disabled={activeMusicIndex === musicList.length - 1} className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 disabled:cursor-not-allowed transition z-40 backdrop-blur-sm"><ArrowRight className="w-6 h-6" /></button></>)}
+                        {musicList.length > 1 && (<><button onClick={handleCardPrev} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition z-40 backdrop-blur-sm"><ArrowLeft className="w-6 h-6" /></button><button onClick={handleCardNext} className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition z-40 backdrop-blur-sm"><ArrowRight className="w-6 h-6" /></button></>)}
                     </div>
 
                     {/* Lyrics Preview Section */}
@@ -403,7 +480,7 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
                 </div>
             ) : (
                 /* Expanded Player View (Embedded in Place) */
-                <div className="w-full bg-slate-900 text-white flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="w-full bg-slate-950 text-white flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-8 p-8 overflow-hidden min-h-[500px]">
                         {/* Left: Vinyl Cover */}
                         <div className="w-full md:w-1/2 flex items-center justify-center flex-col gap-8">
@@ -428,7 +505,7 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
 
                         {/* Right: Lyrics */}
                         <div className="w-full md:w-1/2 h-[350px] md:h-[450px] bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm p-6 relative flex flex-col">
-                            <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-slate-900/50 to-transparent z-10 pointer-events-none"></div>
+                            <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-slate-950/80 to-transparent z-10 pointer-events-none"></div>
                             <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 text-center py-8" ref={lyricsContainerRef}>
                                 {activeMusic.lyricList && activeMusic.lyricList.length > 0 ? (
                                     activeMusic.lyricList.map((line, lIdx) => (
@@ -449,12 +526,12 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
                                     </div>
                                 )}
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-slate-900/80 to-transparent z-10 pointer-events-none"></div>
+                            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-slate-950/90 to-transparent z-10 pointer-events-none"></div>
                         </div>
                     </div>
 
                     {/* Footer Controls (Expanded) */}
-                    <div className="bg-black/20 backdrop-blur-md px-8 py-6 border-t border-white/10">
+                    <div className="bg-slate-900/50 backdrop-blur-md px-8 py-6 border-t border-white/10">
                         <div className="max-w-4xl mx-auto flex flex-col gap-4">
                             {/* Progress */}
                             <div className="flex items-center gap-4 text-xs font-mono text-white/50">
@@ -468,16 +545,32 @@ export const MusicSection: React.FC<{ musicSents?: MusicSentsData }> = ({ musicS
 
                             {/* Main Buttons */}
                             <div className="flex items-center justify-center gap-10">
-                                <button className="text-white/40 hover:text-white transition"><Shuffle className="w-5 h-5"/></button>
-                                <button onClick={handlePrev} className="text-white hover:text-pink-400 transition p-2"><ArrowLeft className="w-8 h-8"/></button>
+                                <button 
+                                    onClick={toggleShuffle} 
+                                    className={`transition ${isShuffle ? 'text-pink-500' : 'text-white/40 hover:text-white'}`}
+                                    title={isShuffle ? "关闭随机播放" : "开启随机播放"}
+                                >
+                                    <Shuffle className="w-5 h-5"/>
+                                </button>
+                                
+                                <button onClick={playPrev} className="text-white hover:text-pink-400 transition p-2 hover:scale-110 active:scale-95"><ArrowLeft className="w-8 h-8"/></button>
+                                
                                 <button 
                                     onClick={togglePlay} 
-                                    className="w-16 h-16 rounded-full bg-white text-slate-900 flex items-center justify-center hover:scale-105 transition active:scale-95 shadow-lg shadow-white/10"
+                                    className="w-16 h-16 rounded-full bg-white text-slate-900 flex items-center justify-center hover:scale-105 transition active:scale-95 shadow-lg shadow-white/10 hover:shadow-pink-500/20"
                                 >
                                     {isPlaying ? <PauseCircle className="w-8 h-8 fill-slate-900 text-white"/> : <PlayCircle className="w-8 h-8 fill-slate-900 text-white ml-1"/>}
                                 </button>
-                                <button onClick={handleNext} className="text-white hover:text-pink-400 transition p-2"><ArrowRight className="w-8 h-8"/></button>
-                                <button className="text-white/40 hover:text-white transition"><Repeat className="w-5 h-5"/></button>
+                                
+                                <button onClick={playNext} className="text-white hover:text-pink-400 transition p-2 hover:scale-110 active:scale-95"><ArrowRight className="w-8 h-8"/></button>
+                                
+                                <button 
+                                    onClick={toggleRepeat} 
+                                    className={`transition ${repeatMode !== 'off' ? 'text-pink-500' : 'text-white/40 hover:text-white'}`}
+                                    title={`循环模式: ${repeatMode === 'one' ? '单曲循环' : repeatMode === 'all' ? '列表循环' : '不循环'}`}
+                                >
+                                    {repeatMode === 'one' ? <Repeat1 className="w-5 h-5"/> : <Repeat className="w-5 h-5"/>}
+                                </button>
                             </div>
 
                             {/* External Link Action */}
