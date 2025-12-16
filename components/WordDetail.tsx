@@ -440,7 +440,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                       </div>
                   </div>
 
-                  {/* Images Section (Carousel) */}
+                  {/* Images Section (Accordion) */}
                   {hasData('images') && (
                       <div id="images" ref={el => sectionRefs.current['images'] = el} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-100">
@@ -448,55 +448,39 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                               <h3 className="text-lg font-bold text-slate-800">单词配图 (Images)</h3>
                           </div>
                           
-                          <div className="relative bg-slate-50 rounded-xl overflow-hidden border border-slate-100 group select-none">
-                              {/* Main Image Display */}
-                              <div className="aspect-[4/3] md:aspect-[16/9] w-full flex items-center justify-center bg-slate-100 relative overflow-hidden">
-                                   {/* Blurred Background */}
-                                   <div 
-                                      className="absolute inset-0 bg-cover bg-center blur-xl opacity-50 scale-110"
-                                      style={{ backgroundImage: `url(${images[activeImageIndex].image})` }}
-                                   />
-                                   
-                                   {/* Main Image */}
-                                   <img 
-                                      src={images[activeImageIndex].image} 
-                                      className="relative z-10 max-h-full max-w-full object-contain shadow-lg"
-                                      alt={`${word} illustration`}
-                                   />
-
-                                   {/* Navigation Arrows */}
-                                   {images.length > 1 && (
-                                       <>
-                                           <button 
-                                               onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev === 0 ? images.length - 1 : prev - 1); }}
-                                               className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white/80 hover:bg-white text-slate-700 shadow-md opacity-0 group-hover:opacity-100 transition-all transform hover:scale-110"
-                                           >
-                                               <ArrowLeft className="w-5 h-5" />
-                                           </button>
-                                           <button 
-                                               onClick={(e) => { e.stopPropagation(); setActiveImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1); }}
-                                               className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white/80 hover:bg-white text-slate-700 shadow-md opacity-0 group-hover:opacity-100 transition-all transform hover:scale-110"
-                                           >
-                                               <ArrowRight className="w-5 h-5" />
-                                           </button>
-                                       </>
-                                   )}
-                              </div>
-
-                              {/* Thumbnails / Indicators */}
-                              {images.length > 1 && (
-                                  <div className="p-4 bg-white border-t border-slate-100 flex gap-2 overflow-x-auto custom-scrollbar">
-                                      {images.map((img, idx) => (
-                                          <button 
-                                              key={idx}
-                                              onClick={() => setActiveImageIndex(idx)}
-                                              className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${activeImageIndex === idx ? 'border-rose-500 ring-2 ring-rose-100' : 'border-transparent opacity-60 hover:opacity-100'}`}
-                                          >
-                                              <img src={img.image} className="w-full h-full object-cover" />
-                                          </button>
-                                      ))}
+                          <div className="flex flex-col md:flex-row gap-2 h-96 w-full select-none">
+                              {images.slice(0, 5).map((img, idx) => (
+                                  <div 
+                                      key={idx}
+                                      onClick={() => setActiveImageIndex(idx)}
+                                      className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-500 ease-out border border-slate-100 shadow-sm ${
+                                          activeImageIndex === idx 
+                                          ? 'flex-[4] md:flex-[5] shadow-md ring-2 ring-rose-100 ring-offset-2' 
+                                          : 'flex-1 hover:flex-[1.2] opacity-80 hover:opacity-100 grayscale-[0.3] hover:grayscale-0'
+                                      }`}
+                                  >
+                                      <img 
+                                          src={img.image} 
+                                          className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ${activeImageIndex === idx ? 'scale-100' : 'scale-110'}`}
+                                          alt={`${word} ${idx + 1}`}
+                                          loading="lazy"
+                                      />
+                                      {/* Gradient Overlay for Text */}
+                                      <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-500 flex flex-col justify-end p-4 ${activeImageIndex === idx ? 'opacity-100' : ''}`}>
+                                          <div className="flex items-center justify-between">
+                                              <span className="text-white text-xs font-bold bg-white/20 backdrop-blur-md px-2 py-1 rounded border border-white/10">
+                                                  Image {idx + 1}
+                                              </span>
+                                              {/* Simple Indicator Dots */}
+                                              <div className="flex gap-1">
+                                                  {images.slice(0, 5).map((_, dotIdx) => (
+                                                      <div key={dotIdx} className={`w-1.5 h-1.5 rounded-full transition-colors ${dotIdx === idx ? 'bg-white' : 'bg-white/40'}`}></div>
+                                                  ))}
+                                              </div>
+                                          </div>
+                                      </div>
                                   </div>
-                              )}
+                              ))}
                           </div>
                           <SourceBadge source="pic_dict" />
                       </div>
@@ -1098,7 +1082,7 @@ export const WordDetail: React.FC<WordDetailProps> = ({ word, onBack }) => {
                                   </div>
                               </div>
                           )}
-                          {stats?.co_list && (
+                          {stats?.co_list && ( 
                               <div>
                                   <h4 className="text-sm font-bold text-slate-600 mb-3">搭配统计</h4>
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
